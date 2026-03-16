@@ -99,7 +99,8 @@ Running `sse-codegen --input openapi.yaml --output ./generated` produces three f
 
 ### `generated/types.ts`
 
-Named schemas from `$ref` components and per-operation params/event unions:
+Named schemas from `$ref` components, per-operation params interfaces, named
+variant types (one per `event.const` value), and union aliases:
 
 ```typescript
 export type ChatCompletionRequest = {
@@ -127,18 +128,29 @@ export interface PostChatCompletionsParams {
     body: ChatCompletionRequest;
 }
 
-export type PostChatCompletionsEvent = {
+// Named variant types — individually importable
+export type PostChatCompletionsMessageEvent = {
     event: "message";
     data: ChatMessage;  // JSON-parsed from msg.data
     id?: string;
-} | {
+};
+
+export type PostChatCompletionsDoneEvent = {
     event: "done";
     data: string;
-} | {
+};
+
+export type PostChatCompletionsErrorEvent = {
     event: "error";
     data: ApiError;    // JSON-parsed from msg.data
     id?: string;
 };
+
+// Union alias references the named types
+export type PostChatCompletionsEvent =
+    PostChatCompletionsMessageEvent |
+    PostChatCompletionsDoneEvent |
+    PostChatCompletionsErrorEvent;
 ```
 
 ### `generated/client.ts`
