@@ -9,14 +9,12 @@ Follows the [bump.sh OpenAPI 3.2 streaming pattern](https://bump.sh/blog/json-st
 ## Installation
 
 ```bash
-npm install -g openapi-sse-fetch
+npm install -D benmosher/openapi-sse-fetch
+# or
+pnpm add -D benmosher/openapi-sse-fetch
 ```
 
-Or use directly with npx:
-
-```bash
-npx openapi-sse-fetch --input ./openapi.yaml --output ./generated
-```
+npm/pnpm will automatically compile the TypeScript source via the `prepare` script — no separate build step needed. The `sse-codegen` binary will be available in `node_modules/.bin/`.
 
 ---
 
