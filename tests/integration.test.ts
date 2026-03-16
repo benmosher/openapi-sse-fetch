@@ -91,6 +91,23 @@ describe('generate() – sample openapi.yaml', () => {
     assert.match(files['types.ts'], /"error"/);
   });
 
+  it('types.ts emits named variant types for const-string event fields', async () => {
+    await ensureFiles();
+    assert.match(files['types.ts'], /PostChatCompletionsMessageEvent/);
+    assert.match(files['types.ts'], /PostChatCompletionsDoneEvent/);
+    assert.match(files['types.ts'], /PostChatCompletionsErrorEvent/);
+  });
+
+  it('types.ts union alias references named variant types', async () => {
+    await ensureFiles();
+    // The union should reference the named types, not inline the literals
+    const unionMatch = files['types.ts'].match(/PostChatCompletionsEvent\s*=([^;]+);/s);
+    assert.ok(unionMatch, 'PostChatCompletionsEvent type alias not found');
+    assert.match(unionMatch![1], /PostChatCompletionsMessageEvent/);
+    assert.match(unionMatch![1], /PostChatCompletionsDoneEvent/);
+    assert.match(unionMatch![1], /PostChatCompletionsErrorEvent/);
+  });
+
   it('types.ts emits ChatMessage referenced schema', async () => {
     await ensureFiles();
     assert.match(files['types.ts'], /ChatMessage/);

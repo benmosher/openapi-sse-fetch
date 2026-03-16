@@ -76,66 +76,101 @@ describe('toPascalCase', () => {
 describe('generateEventType', () => {
   beforeEach(() => schemaRegistry.clear());
 
-  it('uses operationId + "Event" as the type name', () => {
-    const decl = generateEventType(makeOp());
-    assert.match(printNode(decl), /ListEventsEvent/);
+  // Helper: print all declarations returned by generateEventType as one string.
+  function printEventTypes(op: SseOperation): string {
+    return generateEventType(op).map(printNode).join('\n\n');
+  }
+
+  it('uses operationId + "Event" as the union type name', () => {
+    const text = printEventTypes(makeOp());
+    assert.match(text, /ListEventsEvent/);
   });
 
-  it('emits export modifier', () => {
-    const text = printNode(generateEventType(makeOp()));
-    assert.match(text, /^export type/);
+  it('emits export modifier on all declarations', () => {
+    const decls = generateEventType(makeOp());
+    for (const d of decls) {
+      assert.match(printNode(d), /^export type/);
+    }
   });
 
-  it('generates a union from oneOf itemSchema', () => {
+  it('generates named variant types for const-string event fields', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          {
-            type: 'object',
-            properties: {
-              event: { type: 'string', const: 'ping' },
-              data: { type: 'string' },
-            },
-          },
-          {
-            type: 'object',
-            properties: {
-              event: { type: 'string', const: 'pong' },
-              data: { type: 'string' },
-            },
-          },
+          { type: 'object', properties: { event: { type: 'string', const: 'ping' }, data: { type: 'string' } } },
+          { type: 'object', properties: { event: { type: 'string', const: 'pong' }, data: { type: 'string' } } },
         ],
       },
     });
-    const text = printNode(generateEventType(op));
-    assert.match(text, /\|/);                    // union
+    const text = printEventTypes(op);
+    assert.match(text, /ListEventsPingEvent/);
+    assert.match(text, /ListEventsPongEvent/);
     assert.match(text, /"ping"/);
     assert.match(text, /"pong"/);
   });
 
-  it('includes optional id field when present in variant', () => {
+  it('union alias references named variant types by name', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          {
-            type: 'object',
-            properties: {
-              event: { type: 'string', const: 'msg' },
-              data: { type: 'string' },
-              id: { type: 'string' },
-            },
-          },
+          { type: 'object', properties: { event: { type: 'string', const: 'ping' }, data: { type: 'string' } } },
+          { type: 'object', properties: { event: { type: 'string', const: 'pong' }, data: { type: 'string' } } },
         ],
       },
     });
-    const text = printNode(generateEventType(op));
+    const decls = generateEventType(op);
+    const unionDecl = decls[decls.length - 1];
+    const unionText = printNode(unionDecl);
+    assert.match(unionText, /ListEventsPingEvent/);
+    assert.match(unionText, /ListEventsPongEvent/);
+    assert.match(unionText, /\|/);
+  });
+
+  it('returns named variant + union (2 decls per const variant + 1 union)', () => {
+    const op = makeOp({
+      itemSchema: {
+        oneOf: [
+          { type: 'object', properties: { event: { type: 'string', const: 'ping' } } },
+          { type: 'object', properties: { event: { type: 'string', const: 'pong' } } },
+        ],
+      },
+    });
+    // 2 named variants + 1 union = 3
+    assert.equal(generateEventType(op).length, 3);
+  });
+
+  it('inlines variants without a const event string', () => {
+    const op = makeOp({
+      itemSchema: {
+        oneOf: [
+          { type: 'object', properties: { event: { type: 'string', const: 'ping' } } },
+          { type: 'object', properties: { event: { type: 'string' } } }, // no const
+        ],
+      },
+    });
+    // 1 named variant + 1 union = 2
+    assert.equal(generateEventType(op).length, 2);
+    const unionText = printNode(generateEventType(op)[1]);
+    assert.match(unionText, /ListEventsPingEvent/); // named ref
+    assert.match(unionText, /event: string/);        // inlined
+  });
+
+  it('includes optional id field in named variant type', () => {
+    const op = makeOp({
+      itemSchema: {
+        oneOf: [
+          { type: 'object', properties: { event: { type: 'string', const: 'msg' }, data: { type: 'string' }, id: { type: 'string' } } },
+        ],
+      },
+    });
+    const text = printEventTypes(op);
     assert.match(text, /id\?:/);
   });
 
-  it('generates a plain type for flat (non-oneOf) itemSchema', () => {
+  it('generates a single alias for flat (non-oneOf) itemSchema', () => {
     const op = makeOp({ itemSchema: { type: 'object', properties: { x: { type: 'number' } } } });
-    const text = printNode(generateEventType(op));
-    assert.match(text, /x\?: number/);
+    assert.equal(generateEventType(op).length, 1);
+    assert.match(printEventTypes(op), /x\?: number/);
   });
 
   it('resolves contentMediaType:application/json data to contentSchema type', () => {
@@ -156,8 +191,8 @@ describe('generateEventType', () => {
         ],
       },
     });
-    const text = printNode(generateEventType(op));
-    assert.match(text, /Payload/);         // referenced by title
+    const text = printEventTypes(op);
+    assert.match(text, /Payload/);
     assert.ok(schemaRegistry.has('Payload'));
   });
 });

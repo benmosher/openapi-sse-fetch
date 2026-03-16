@@ -29,7 +29,7 @@ export async function generate(opts: GenerateOptions): Promise<Record<string, st
   const opTypeNodes: import('typescript').Node[] = [];
   for (const op of ops) {
     opTypeNodes.push(generateParamsType(op));
-    opTypeNodes.push(generateEventType(op));
+    opTypeNodes.push(...generateEventType(op));
   }
 
   // After generating operation types, emit any referenced schemas discovered during traversal

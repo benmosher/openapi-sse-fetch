@@ -8,66 +8,65 @@ export function toPascalCase(str: string): string {
     .replace(/[^a-zA-Z0-9]/g, '');
 }
 
-export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration {
-  const typeName = `${toPascalCase(op.operationId)}Event`;
+// Returns one declaration per named variant (when event.const is a string)
+// followed by the union alias that references them.  For flat (non-oneOf)
+// itemSchemas a single alias is returned.
+export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration[] {
+  const prefix = toPascalCase(op.operationId);
+  const unionTypeName = `${prefix}Event`;
   const schema = op.itemSchema;
 
-  let typeNode: ts.TypeNode;
-
-  if (schema.oneOf) {
-    const members = schema.oneOf.map((variant: any) => {
-      const variantMembers: ts.TypeElement[] = [];
-
-      const eventProp = variant.properties?.event;
-      const dataProp = variant.properties?.data;
-      const idProp = variant.properties?.id;
-
-      if (eventProp) {
-        variantMembers.push(
-          ts.factory.createPropertySignature(
-            undefined,
-            'event',
-            undefined,
-            schemaToTs(eventProp)
-          )
-        );
-      }
-
-      if (dataProp) {
-        variantMembers.push(
-          ts.factory.createPropertySignature(
-            undefined,
-            'data',
-            undefined,
-            schemaToTs(dataProp)
-          )
-        );
-      }
-
-      if (idProp) {
-        variantMembers.push(
-          ts.factory.createPropertySignature(
-            undefined,
-            'id',
-            ts.factory.createToken(ts.SyntaxKind.QuestionToken),
-            schemaToTs(idProp)
-          )
-        );
-      }
-
-      return ts.factory.createTypeLiteralNode(variantMembers);
-    });
-    typeNode = ts.factory.createUnionTypeNode(members);
-  } else {
-    typeNode = schemaToTs(schema);
+  if (!schema.oneOf) {
+    return [ts.factory.createTypeAliasDeclaration(
+      [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+      unionTypeName, undefined, schemaToTs(schema),
+    )];
   }
 
-  return ts.factory.createTypeAliasDeclaration(
+  const namedDecls: ts.TypeAliasDeclaration[] = [];
+  const unionMembers: ts.TypeNode[] = [];
+
+  for (const variant of schema.oneOf) {
+    const eventConst = variant.properties?.event?.const;
+    const variantNode = buildVariantTypeNode(variant);
+
+    if (typeof eventConst === 'string') {
+      const variantTypeName = `${prefix}${toPascalCase(eventConst)}Event`;
+      namedDecls.push(ts.factory.createTypeAliasDeclaration(
+        [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+        variantTypeName, undefined, variantNode,
+      ));
+      unionMembers.push(ts.factory.createTypeReferenceNode(variantTypeName, undefined));
+    } else {
+      unionMembers.push(variantNode);
+    }
+  }
+
+  const unionDecl = ts.factory.createTypeAliasDeclaration(
     [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-    typeName,
-    undefined,
-    typeNode
+    unionTypeName, undefined,
+    ts.factory.createUnionTypeNode(unionMembers),
   );
+
+  return [...namedDecls, unionDecl];
+}
+
+function buildVariantTypeNode(variant: any): ts.TypeLiteralNode {
+  const members: ts.TypeElement[] = [];
+  const { event: eventProp, data: dataProp, id: idProp } = variant.properties ?? {};
+
+  if (eventProp) {
+    members.push(ts.factory.createPropertySignature(undefined, 'event', undefined, schemaToTs(eventProp)));
+  }
+  if (dataProp) {
+    members.push(ts.factory.createPropertySignature(undefined, 'data', undefined, schemaToTs(dataProp)));
+  }
+  if (idProp) {
+    members.push(ts.factory.createPropertySignature(
+      undefined, 'id', ts.factory.createToken(ts.SyntaxKind.QuestionToken), schemaToTs(idProp),
+    ));
+  }
+  return ts.factory.createTypeLiteralNode(members);
 }
 
 export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
