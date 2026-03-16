@@ -48,7 +48,7 @@ describe('generateFunction', () => {
   it('includes optional options parameter with signal and headers', () => {
     const code = generateFunction(makeOp(), BASE);
     assert.match(code, /options\?.*AbortSignal/);
-    assert.match(code, /HeadersInit/);
+    assert.match(code, /Record<string, string>/);
   });
 
   it('generates a function body that references BASE_URL (caller injects the base URL)', () => {

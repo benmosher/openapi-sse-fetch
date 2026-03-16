@@ -1,5 +1,6 @@
 node_modules/
 dist/
 dist-test/
+dist-typecheck-test/
 generated/
 *.js.map

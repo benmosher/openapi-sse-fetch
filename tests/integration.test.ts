@@ -5,12 +5,14 @@
  * the shape of the three output files produced by generate().  No files are
  * written to disk.
  */
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { spawnSync } from 'child_process';
 import { generate } from '../src/index';
+import { writeFiles } from '../src/emit';
 import { schemaRegistry } from '../src/schema-to-ts';
 
 // __dirname at runtime is dist-test/tests; project root is two levels up.
@@ -117,6 +119,11 @@ describe('generate() – sample openapi.yaml', () => {
     assert.match(apiErrorBlock, /message: string/);
     assert.doesNotMatch(apiErrorBlock, /code\?/);
     assert.doesNotMatch(apiErrorBlock, /message\?/);
+  });
+
+  it('types.ts emits Message referenced schema (transitively via ChatCompletionRequest)', async () => {
+    await ensureFiles();
+    assert.match(files['types.ts'], /export type Message/);
   });
 
   it('types.ts ChatMessage has optional role and finish_reason fields', async () => {
@@ -243,7 +250,6 @@ describe('generate() – error handling', () => {
 
 describe('generate() + writeFiles – disk output', () => {
   it('writes all three files to the output directory', async () => {
-    const { writeFiles } = await import('../src/emit');
     const dir = path.join(os.tmpdir(), `sse-test-${Date.now()}`);
     schemaRegistry.clear();
     const files = await generate({ inputPath: SPEC_PATH, outputDir: dir });
@@ -252,5 +258,46 @@ describe('generate() + writeFiles – disk output', () => {
       assert.ok(fs.existsSync(path.join(dir, name)), `${name} should exist`);
     }
     fs.rmSync(dir, { recursive: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tsc type-check: generated output must compile without errors
+// ---------------------------------------------------------------------------
+
+describe('generated output – tsc type checking', () => {
+  it('types.ts and client.ts compile with tsc --noEmit', async () => {
+    // Write to a subdir of the project root so node_modules resolution finds
+    // @microsoft/fetch-event-source and other deps installed here.
+    const projectRoot = path.resolve(__dirname, '../..');
+    const outDir = path.join(projectRoot, 'dist-typecheck-test');
+
+    schemaRegistry.clear();
+    const files = await generate({ inputPath: SPEC_PATH, outputDir: outDir });
+    writeFiles(outDir, files);
+
+    fs.writeFileSync(path.join(outDir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: {
+        target: 'ES2020',
+        module: 'commonjs',
+        lib: ['ES2020', 'DOM'],
+        strict: true,
+        esModuleInterop: true,
+        noEmit: true,
+        skipLibCheck: false,
+      },
+      include: ['*.ts'],
+    }, null, 2));
+
+    const tsc = path.join(projectRoot, 'node_modules', '.bin', 'tsc');
+    const result = spawnSync(tsc, ['--project', path.join(outDir, 'tsconfig.json')], {
+      cwd: outDir,
+      encoding: 'utf-8',
+    });
+
+    fs.rmSync(outDir, { recursive: true });
+
+    assert.strictEqual(result.status, 0,
+      `tsc type-check failed:\n${result.stdout}\n${result.stderr}`);
   });
 });

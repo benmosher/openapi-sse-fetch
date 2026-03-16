@@ -143,7 +143,7 @@ export function generateFunction(op: SseOperation, baseUrl: string): string {
 
   return `export async function* ${funcName}(
   ${paramsArgDecl},
-  options?: { signal?: AbortSignal; headers?: HeadersInit }
+  options?: { signal?: AbortSignal; headers?: Record<string, string> }
 ): AsyncGenerator<${eventTypeName}> {
   const ch = createChannel<${eventTypeName}>();
   const _url = ${urlExpr};

@@ -107,6 +107,11 @@ export type ChatCompletionRequest = {
     stream?: boolean;
 };
 
+export type Message = {
+    role: string;
+    content: string;
+};
+
 export type ChatMessage = {
     content: string;
     role?: string;
@@ -149,7 +154,7 @@ const BASE_URL = "https://api.example.com/v1";
 
 export async function* postChatCompletions(
   params: PostChatCompletionsParams,
-  options?: { signal?: AbortSignal; headers?: HeadersInit }
+  options?: { signal?: AbortSignal; headers?: Record<string, string> }
 ): AsyncGenerator<PostChatCompletionsEvent> {
   const ch = createChannel<PostChatCompletionsEvent>();
   const _url = `${BASE_URL}/chat/completions`;

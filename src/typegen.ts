@@ -132,90 +132,36 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
   );
 }
 
-// After all types have been generated, emit any referenced named schemas
+// After all types have been generated, emit any referenced named schemas.
+// Uses schemaToTs (which registers nested titled schemas) and loops until the
+// registry stops growing, so transitively-referenced types like Message are
+// always included.
 export function generateReferencedSchemaTypes(): ts.TypeAliasDeclaration[] {
+  const emitted = new Set<string>();
   const result: ts.TypeAliasDeclaration[] = [];
-  for (const [name, schema] of schemaRegistry) {
-    const schemaWithoutTitle = { ...schema, title: undefined };
-    // Use schemaToTs but suppress re-registration
-    const typeNode = buildTypeNodeForSchema(schemaWithoutTitle);
-    result.push(
-      ts.factory.createTypeAliasDeclaration(
-        [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-        name,
-        undefined,
-        typeNode
-      )
-    );
-  }
-  return result;
-}
 
-// Build a type node without registering titles (to avoid re-registration loops)
-function buildTypeNodeForSchema(schema: any): ts.TypeNode {
-  if (!schema) return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [name, schema] of schemaRegistry) {
+      if (emitted.has(name)) continue;
+      emitted.add(name);
+      changed = true;
 
-  if (schema.contentMediaType === 'application/json') {
-    if (schema.contentSchema) {
-      return buildTypeNodeForSchema(schema.contentSchema);
-    }
-    return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
-  }
-
-  if (schema.title) {
-    // Just reference, don't re-register
-    return ts.factory.createTypeReferenceNode(schema.title, undefined);
-  }
-
-  if (schema.const !== undefined) {
-    const val = schema.const;
-    if (typeof val === 'string') {
-      return ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(val));
-    }
-    if (typeof val === 'number') {
-      return ts.factory.createLiteralTypeNode(ts.factory.createNumericLiteral(val));
-    }
-    if (typeof val === 'boolean') {
-      return ts.factory.createLiteralTypeNode(val ? ts.factory.createTrue() : ts.factory.createFalse());
-    }
-  }
-
-  if (schema.oneOf) {
-    const types = schema.oneOf.map((s: any) => buildTypeNodeForSchema(s));
-    return ts.factory.createUnionTypeNode(types);
-  }
-
-  if (schema.allOf) {
-    const types = schema.allOf.map((s: any) => buildTypeNodeForSchema(s));
-    return ts.factory.createIntersectionTypeNode(types);
-  }
-
-  const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-
-  if (t === 'string') return ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword);
-  if (t === 'integer' || t === 'number') return ts.factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword);
-  if (t === 'boolean') return ts.factory.createKeywordTypeNode(ts.SyntaxKind.BooleanKeyword);
-  if (t === 'null') return ts.factory.createLiteralTypeNode(ts.factory.createNull());
-
-  if (t === 'array') {
-    const itemType = schema.items
-      ? buildTypeNodeForSchema(schema.items)
-      : ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
-    return ts.factory.createArrayTypeNode(itemType);
-  }
-
-  if (t === 'object' || schema.properties) {
-    const props = Object.entries(schema.properties || {}).map(([key, propSchema]) => {
-      const required = schema.required?.includes(key) ?? false;
-      return ts.factory.createPropertySignature(
-        undefined,
-        key,
-        required ? undefined : ts.factory.createToken(ts.SyntaxKind.QuestionToken),
-        buildTypeNodeForSchema(propSchema as any)
+      // Strip title before calling schemaToTs so it doesn't self-register,
+      // but schemaToTs will still register any nested titled schemas it finds.
+      const schemaWithoutTitle = { ...schema, title: undefined };
+      const typeNode = schemaToTs(schemaWithoutTitle);
+      result.push(
+        ts.factory.createTypeAliasDeclaration(
+          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+          name,
+          undefined,
+          typeNode
+        )
       );
-    });
-    return ts.factory.createTypeLiteralNode(props);
+    }
   }
 
-  return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
+  return result;
 }
