@@ -1,0 +1,108 @@
+openapi: 3.1.0
+info:
+  title: Chat API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /chat/completions:
+    post:
+      operationId: postChatCompletions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                itemSchema:
+                  oneOf:
+                    - type: object
+                      properties:
+                        event:
+                          type: string
+                          const: message
+                        data:
+                          type: string
+                          contentMediaType: application/json
+                          contentSchema:
+                            $ref: '#/components/schemas/ChatMessage'
+                        id:
+                          type: string
+                    - type: object
+                      properties:
+                        event:
+                          type: string
+                          const: done
+                        data:
+                          type: string
+                    - type: object
+                      properties:
+                        event:
+                          type: string
+                          const: error
+                        data:
+                          type: string
+                          contentMediaType: application/json
+                          contentSchema:
+                            $ref: '#/components/schemas/ApiError'
+                        id:
+                          type: string
+components:
+  schemas:
+    ChatCompletionRequest:
+      type: object
+      title: ChatCompletionRequest
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        stream:
+          type: boolean
+    Message:
+      type: object
+      title: Message
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+        content:
+          type: string
+    ChatMessage:
+      type: object
+      title: ChatMessage
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        role:
+          type: string
+        finish_reason:
+          type: string
+    ApiError:
+      type: object
+      title: ApiError
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string

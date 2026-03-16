@@ -1,0 +1,24 @@
+{
+  "name": "sse-openapi",
+  "version": "0.1.0",
+  "description": "TypeScript code generator for OpenAPI SSE endpoints",
+  "main": "dist/index.js",
+  "bin": {
+    "sse-codegen": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/**/*.test.js"
+  },
+  "dependencies": {
+    "@scalar/openapi-parser": "^0.10.4",
+    "commander": "^12.0.0",
+    "typescript": "^5.4.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0"
+  }
+}
