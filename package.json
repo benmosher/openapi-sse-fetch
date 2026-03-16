@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli.js",
-    "test": "tsc -p tsconfig.test.json && node --test dist-test/**/*.test.js"
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/**/*.test.js",
+    "generate": "npm run build && node dist/cli.js --input openapi.yaml --output generated"
   },
   "dependencies": {
     "@scalar/openapi-parser": "^0.10.4",
