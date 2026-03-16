@@ -2,6 +2,7 @@
   "name": "sse-openapi",
   "version": "0.1.0",
   "description": "TypeScript code generator for OpenAPI SSE endpoints",
+  "license": "MIT",
   "main": "dist/index.js",
   "bin": {
     "sse-codegen": "dist/cli.js"
