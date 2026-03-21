@@ -53,47 +53,18 @@ async def post_messages(body: MessageBody) -> ChatEvent:
     return event
 
 
-_chat_event_ref = {"$ref": "#/components/schemas/ChatEvent"}
-
 @app.get(
     "/messages/stream",
     operation_id="getMessagesStream",
     response_class=EventSourceResponse,
-    openapi_extra={
-        "responses": {
-            "200": {
-                "content": {
-                    "text/event-stream": {
-                        "itemSchema": {
-                            "oneOf": [
-                                {
-                                    "type": "object",
-                                    "required": ["event", "data"],
-                                    "properties": {
-                                        "event": {"type": "string", "const": "message"},
-                                        "id": {"type": "string"},
-                                        "data": {
-                                            "type": "string",
-                                            "contentMediaType": "application/json",
-                                            "contentSchema": _chat_event_ref,
-                                        },
-                                    },
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        }
-    },
 )
-async def get_messages_stream() -> AsyncIterable[ServerSentEvent]:
+async def get_messages_stream() -> AsyncIterable[ServerSentEvent[ChatEvent]]:
     q: asyncio.Queue[ChatEvent] = asyncio.Queue()
     subscribers.add(q)
     try:
         while True:
             event = await q.get()
-            yield ServerSentEvent(
+            yield ServerSentEvent[ChatEvent](
                 event="message",
                 data=event,
                 id=str(_counter),
