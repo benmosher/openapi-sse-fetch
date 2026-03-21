@@ -221,4 +221,63 @@ describe('generateFunction', () => {
     // Should fall back to default value assignment
     assert.match(code, /= \{\} as StreamFeedParams/);
   });
+
+  it('constructs wrapper object for flat schema with event:string + JSON data + id', () => {
+    const op = makeOp({
+      itemSchema: {
+        type: 'object',
+        properties: {
+          event: { type: 'string' },
+          data: { type: 'string', contentMediaType: 'application/json', contentSchema: { type: 'object' } },
+          id: { type: 'string' },
+        },
+      },
+    });
+    const code = generateFunction(op, BASE);
+    assert.match(code, /event: msg\.event/);
+    assert.match(code, /data: JSON\.parse\(msg\.data\)/);
+    assert.match(code, /id: msg\.id/);
+    // Should not do a bare JSON.parse push
+    assert.doesNotMatch(code, /ch\.push\(JSON\.parse/);
+  });
+
+  it('constructs wrapper object with raw data when no contentMediaType', () => {
+    const op = makeOp({
+      itemSchema: {
+        type: 'object',
+        properties: {
+          event: { type: 'string' },
+          data: { type: 'string' },
+          id: { type: 'string' },
+        },
+      },
+    });
+    const code = generateFunction(op, BASE);
+    assert.match(code, /event: msg\.event/);
+    assert.match(code, /data: msg\.data/);
+    assert.doesNotMatch(code, /JSON\.parse/);
+  });
+
+  it('omits id field from wrapper when not in schema', () => {
+    const op = makeOp({
+      itemSchema: {
+        type: 'object',
+        properties: {
+          event: { type: 'string' },
+          data: { type: 'string', contentMediaType: 'application/json', contentSchema: { type: 'object' } },
+        },
+      },
+    });
+    const code = generateFunction(op, BASE);
+    assert.match(code, /event: msg\.event/);
+    assert.doesNotMatch(code, /id: msg\.id/);
+  });
+
+  it('does not treat flat object without event property as wrapper', () => {
+    const op = makeOp({ itemSchema: { type: 'object', properties: { x: { type: 'string' } } } });
+    const code = generateFunction(op, BASE);
+    // Falls through to bare JSON.parse
+    assert.match(code, /ch\.push\(JSON\.parse\(msg\.data\)/);
+    assert.doesNotMatch(code, /event: msg\.event/);
+  });
 });

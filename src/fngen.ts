@@ -85,7 +85,26 @@ function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string): string
  * Build the onmessage handler body for a flat (non-oneOf) itemSchema.
  */
 function buildFlatDispatch(itemSchema: any, eventTypeName: string): string {
-  // If it's a simple string or primitive, just push msg.data
+  // If the flat schema has an event: string property (no const discriminator),
+  // it's an SSE event wrapper — construct the full object from message fields.
+  const eventProp = itemSchema.properties?.event;
+  if (eventProp?.type === 'string' && eventProp?.const === undefined) {
+    const dataProp = itemSchema.properties?.data;
+    const idProp = itemSchema.properties?.id;
+
+    const isJsonData = dataProp?.contentMediaType === 'application/json';
+    const dataExpr = dataProp
+      ? isJsonData ? 'JSON.parse(msg.data)' : 'msg.data'
+      : undefined;
+
+    const pushFields: string[] = ['event: msg.event'];
+    if (dataExpr !== undefined) pushFields.push(`data: ${dataExpr}`);
+    if (idProp) pushFields.push('id: msg.id');
+
+    return `      ch.push({ ${pushFields.join(', ')} } as ${eventTypeName});`;
+  }
+
+  // If it's a simple primitive, just push msg.data
   const t = Array.isArray(itemSchema.type) ? itemSchema.type[0] : itemSchema.type;
   if (t === 'string' || t === 'number' || t === 'boolean' || t === 'integer') {
     return `      ch.push(msg.data as unknown as ${eventTypeName});`;
