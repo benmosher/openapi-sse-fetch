@@ -91,6 +91,32 @@ describe('extractSseOperations', () => {
     assert.equal(ops[0].requestBody, undefined);
   });
 
+  it('extracts a FastAPI-format SSE operation (itemSchema directly on content, no schema wrapper)', () => {
+    const spec = {
+      paths: {
+        '/stream': {
+          get: {
+            operationId: 'fastApiStream',
+            parameters: [],
+            responses: {
+              '200': {
+                content: {
+                  'text/event-stream': {
+                    itemSchema: { type: 'object', properties: { data: { type: 'string' } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const ops = extractSseOperations(spec);
+    assert.equal(ops.length, 1);
+    assert.equal(ops[0].operationId, 'fastApiStream');
+    assert.deepEqual(ops[0].itemSchema, { type: 'object', properties: { data: { type: 'string' } } });
+  });
+
   it('synthesises an operationId when none is given', () => {
     const spec = {
       paths: {

@@ -13,10 +13,15 @@ export function schemaToTs(schema: any): ts.TypeNode {
     return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
   }
 
-  // titled schema - register and return reference
+  // titled schema - register and return reference (only for non-primitive types)
   if (schema.title) {
-    schemaRegistry.set(schema.title, schema);
-    return ts.factory.createTypeReferenceNode(schema.title, undefined);
+    const t = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    const isPrimitive = t === 'string' || t === 'integer' || t === 'number' || t === 'boolean' || t === 'null';
+    if (!isPrimitive) {
+      schemaRegistry.set(schema.title, schema);
+      return ts.factory.createTypeReferenceNode(schema.title, undefined);
+    }
+    // Fall through to type-based generation for primitive types
   }
 
   // const literal

@@ -108,12 +108,25 @@ describe('schemaToTs', () => {
     assert.match(result, /&/);
   });
 
-  it('registers a titled schema in schemaRegistry and returns a reference', () => {
+  it('registers a titled object schema in schemaRegistry and returns a reference', () => {
     const schema = { title: 'MyModel', type: 'object', properties: { x: { type: 'string' } } };
     const result = printType(schemaToTs(schema));
     assert.equal(result, 'MyModel');
     assert.ok(schemaRegistry.has('MyModel'));
     assert.equal(schemaRegistry.get('MyModel'), schema);
+  });
+
+  it('does not register titled primitive schemas as named types', () => {
+    assert.equal(printType(schemaToTs({ title: 'MyString', type: 'string' })), 'string');
+    assert.equal(printType(schemaToTs({ title: 'MyInt', type: 'integer' })), 'number');
+    assert.equal(printType(schemaToTs({ title: 'MyNum', type: 'number' })), 'number');
+    assert.equal(printType(schemaToTs({ title: 'MyBool', type: 'boolean' })), 'boolean');
+    assert.equal(printType(schemaToTs({ title: 'MyNull', type: 'null' })), 'null');
+    assert.ok(!schemaRegistry.has('MyString'));
+    assert.ok(!schemaRegistry.has('MyInt'));
+    assert.ok(!schemaRegistry.has('MyNum'));
+    assert.ok(!schemaRegistry.has('MyBool'));
+    assert.ok(!schemaRegistry.has('MyNull'));
   });
 
   it('handles contentMediaType:application/json by unwrapping contentSchema', () => {

@@ -11,8 +11,8 @@ A minimal chat app demonstrating **sse-codegen** alongside **Orval**:
 
 ```bash
 cd backend
-uv venv && uv pip install -r requirements.txt
-uv run uvicorn main:app --port 8000
+uv sync
+uv run fastapi dev main.py
 ```
 
 ### 2. Frontend

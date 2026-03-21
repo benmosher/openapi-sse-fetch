@@ -34,6 +34,7 @@ class ChatEvent(BaseModel):
 # ---------------------------------------------------------------------------
 
 subscribers: set[asyncio.Queue[ChatEvent]] = set()
+_counter = 0
 
 # ---------------------------------------------------------------------------
 # Endpoints
@@ -41,6 +42,8 @@ subscribers: set[asyncio.Queue[ChatEvent]] = set()
 
 @app.post("/messages", operation_id="postMessages")
 async def post_messages(body: MessageBody) -> ChatEvent:
+    global _counter
+    _counter += 1
     event = ChatEvent(
         message=body.message,
         ts=datetime.now(timezone.utc).isoformat(),
@@ -50,10 +53,39 @@ async def post_messages(body: MessageBody) -> ChatEvent:
     return event
 
 
+_chat_event_ref = {"$ref": "#/components/schemas/ChatEvent"}
+
 @app.get(
     "/messages/stream",
     operation_id="getMessagesStream",
     response_class=EventSourceResponse,
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {
+                    "text/event-stream": {
+                        "itemSchema": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "required": ["event", "data"],
+                                    "properties": {
+                                        "event": {"type": "string", "const": "message"},
+                                        "id": {"type": "string"},
+                                        "data": {
+                                            "type": "string",
+                                            "contentMediaType": "application/json",
+                                            "contentSchema": _chat_event_ref,
+                                        },
+                                    },
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
 )
 async def get_messages_stream() -> AsyncIterable[ServerSentEvent]:
     q: asyncio.Queue[ChatEvent] = asyncio.Queue()
@@ -61,46 +93,10 @@ async def get_messages_stream() -> AsyncIterable[ServerSentEvent]:
     try:
         while True:
             event = await q.get()
-            yield ServerSentEvent(event="message", data=event)
+            yield ServerSentEvent(
+                event="message",
+                data=event,
+                id=str(_counter),
+            )
     finally:
         subscribers.discard(q)
-
-# ---------------------------------------------------------------------------
-# OpenAPI patching  – 3.2 + text/event-stream itemSchema
-# ---------------------------------------------------------------------------
-
-_original_openapi = app.openapi
-
-def custom_openapi():
-    schema = _original_openapi()
-    schema["openapi"] = "3.2.0"
-
-    chat_event_ref = {"$ref": "#/components/schemas/ChatEvent"}
-
-    stream_op = schema["paths"]["/messages/stream"]["get"]
-    stream_op["responses"]["200"]["content"] = {
-        "text/event-stream": {
-            "schema": {
-                "type": "object",
-                "itemSchema": {
-                    "oneOf": [
-                        {
-                            "type": "object",
-                            "properties": {
-                                "event": {"type": "string", "const": "message"},
-                                "data": {
-                                    "type": "string",
-                                    "contentMediaType": "application/json",
-                                    "contentSchema": chat_event_ref,
-                                },
-                            },
-                        }
-                    ]
-                },
-            }
-        }
-    }
-
-    return schema
-
-app.openapi = custom_openapi
