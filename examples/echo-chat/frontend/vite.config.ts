@@ -5,8 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/messages": "http://localhost:8001",
-      "/openapi.json": "http://localhost:8001",
+      "/messages": "http://localhost:8000",
+      "/openapi.json": "http://localhost:8000",
     },
   },
 });
