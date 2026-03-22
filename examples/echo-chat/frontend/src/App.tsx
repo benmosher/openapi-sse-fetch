@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getMessagesStream } from "./generated/sse/client";
-import type { GetMessagesStreamMessageEvent } from "./generated/sse/types";
+import type {
+  GetMessagesStreamMessageEvent,
+  GetMessagesStreamStatusEvent,
+} from "./generated/sse/types";
 import { usePostMessages } from "./generated/orval";
 
-type ChatMessage = GetMessagesStreamMessageEvent["data"];
+type ChatEntry =
+  | { kind: "message"; data: GetMessagesStreamMessageEvent["data"] }
+  | { kind: "status"; data: GetMessagesStreamStatusEvent["data"] };
 
 export default function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +27,11 @@ export default function App() {
           {},
           { signal: controller.signal },
         )) {
-          setMessages((prev) => [...prev, event.data]);
+          if (event.event === "message") {
+            setEntries((prev) => [...prev, { kind: "message", data: event.data }]);
+          } else if (event.event === "status") {
+            setEntries((prev) => [...prev, { kind: "status", data: event.data }]);
+          }
         }
       } catch {
         if (!controller.signal.aborted) {
@@ -34,10 +43,10 @@ export default function App() {
     return () => controller.abort();
   }, []);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new entries
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [entries]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -52,19 +61,33 @@ export default function App() {
       <h1>Echo Chat</h1>
 
       <article style={{ height: 400, overflowY: "auto", marginBottom: "1rem" }}>
-        {messages.length === 0 && (
+        {entries.length === 0 && (
           <p style={{ color: "var(--pico-muted-color)" }}>
             No messages yet. Send one below!
           </p>
         )}
-        {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom: "0.5rem" }}>
-            <small style={{ color: "var(--pico-muted-color)" }}>
-              {new Date(msg.ts).toLocaleTimeString()}
-            </small>
-            <div>{msg.message}</div>
-          </div>
-        ))}
+        {entries.map((entry, i) =>
+          entry.kind === "message" ? (
+            <div key={i} style={{ marginBottom: "0.5rem" }}>
+              <small style={{ color: "var(--pico-muted-color)" }}>
+                {new Date(entry.data.ts).toLocaleTimeString()}
+              </small>
+              <div>{entry.data.message}</div>
+            </div>
+          ) : (
+            <div key={i} style={{ marginBottom: "0.5rem" }}>
+              <small style={{ color: "var(--pico-muted-color)" }}>
+                {new Date(entry.data.ts).toLocaleTimeString()}
+              </small>
+              <div>
+                <em>
+                  The status has changed to:{" "}
+                  {entry.data.status.toLowerCase()}
+                </em>
+              </div>
+            </div>
+          )
+        )}
         <div ref={bottomRef} />
       </article>
 

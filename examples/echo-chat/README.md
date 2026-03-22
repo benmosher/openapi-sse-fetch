@@ -26,16 +26,19 @@ bash generate.sh   # dumps OpenAPI, runs Orval + sse-codegen
 npm run dev
 ```
 
-Open http://localhost:5173, type a message, and see it echoed back via SSE.
+Open http://localhost:5173, type a message, and see it echoed back via SSE. Every 10 seconds a status event appears italicised in the chat.
 
 ## How it works
 
 - **POST `/messages`** sends a message; the backend broadcasts it to all SSE subscribers
 - **GET `/messages/stream`** is an SSE endpoint — each connected client gets its own `asyncio.Queue`
-- The FastAPI app uses `ServerSentEvent[ChatEvent]` as the yield type; FastAPI automatically emits an OpenAPI 3.2 `itemSchema` with `contentSchema` for the `text/event-stream` response
+- The stream yields a **discriminated union** of two event types:
+  - `ServerSentEvent[ChatEvent, Literal["message"]]` — a chat message
+  - `ServerSentEvent[StatusEvent, Literal["status"]]` — a periodic heartbeat (every 10 s)
+- FastAPI automatically emits an OpenAPI 3.1 `itemSchema` with `oneOf` + `discriminator` for the `text/event-stream` response
 - **Orval** generates a `usePostMessages` React Query mutation hook from the spec
-- **sse-codegen** generates a typed `getMessagesStream` async generator from the SSE endpoint
-- The React app combines both: the mutation sends messages, the generator streams them
+- **sse-codegen** generates a typed `getMessagesStream` async generator with per-event-name dispatch from the SSE endpoint
+- The React app combines both: the mutation sends messages, the generator streams and discriminates events
 
 ## Code generation
 
@@ -59,15 +62,27 @@ export type ChatEvent = {
     ts: string;
 };
 
+export type StatusEvent = {
+    status: "ONLINE" | "OFFLINE";
+    ts: string;
+};
+
 export interface GetMessagesStreamParams {
 }
 
-export type GetMessagesStreamEvent = {
+export type GetMessagesStreamMessageEvent = {
+    event: "message";
     data: ChatEvent;
-    event?: string;
     id?: string;
-    retry?: number;
 };
+
+export type GetMessagesStreamStatusEvent = {
+    event: "status";
+    data: StatusEvent;
+    id?: string;
+};
+
+export type GetMessagesStreamEvent = GetMessagesStreamMessageEvent | GetMessagesStreamStatusEvent;
 ```
 
 `src/generated/sse/client.ts`:
@@ -95,7 +110,14 @@ export async function* getMessagesStream(
       if (!res.ok) throw new Error(`SSE open failed: ${res.status}`);
     },
     onmessage(msg) {
-      ch.push({ event: msg.event, data: JSON.parse(msg.data), id: msg.id } as GetMessagesStreamEvent);
+      if (msg.event === "message") {
+        ch.push({ event: "message", data: JSON.parse(msg.data), id: msg.id } as GetMessagesStreamEvent);
+        return;
+      }
+      if (msg.event === "status") {
+        ch.push({ event: "status", data: JSON.parse(msg.data), id: msg.id } as GetMessagesStreamEvent);
+        return;
+      }
     },
     onclose() { ch.done(); },
     onerror(err) { ch.error(err); throw err; },

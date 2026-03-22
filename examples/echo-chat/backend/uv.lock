@@ -86,7 +86,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fastapi", extras = ["standard"], git = "https://github.com/benmosher/fastapi.git?rev=feature%2Fgeneric-sse-data" }]
+requires-dist = [{ name = "fastapi", extras = ["standard"], git = "https://github.com/benmosher/fastapi.git?rev=feature%2Fsse-event-discriminator" }]
 
 [[package]]
 name = "email-validator"
@@ -104,7 +104,7 @@ wheels = [
 [[package]]
 name = "fastapi"
 version = "0.135.1"
-source = { git = "https://github.com/benmosher/fastapi.git?rev=feature%2Fgeneric-sse-data#abacc0650ffea79e406dd119ce3eb2a60008792b" }
+source = { git = "https://github.com/benmosher/fastapi.git?rev=feature%2Fsse-event-discriminator#df153c4fef69dc9c7ff883c2a3b3dc4d699c6d5d" }
 dependencies = [
     { name = "annotated-doc" },
     { name = "pydantic" },

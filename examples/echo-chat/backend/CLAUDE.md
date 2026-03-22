@@ -21,6 +21,6 @@ fastapi run main.py          # production
 
 ## SSE pattern
 
-The stream endpoint yields `ServerSentEvent` objects with `event`, `data`, and `id` fields.
-FastAPI does not automatically include the `itemSchema` in OpenAPI when the yield type is
-`ServerSentEvent`, so the schema is supplied via `openapi_extra` on the decorator.
+The stream endpoint yields a discriminated union of `ServerSentEvent[Data, Literal["event_name"]]`
+types. FastAPI automatically emits an OpenAPI 3.1 `itemSchema` with `oneOf` and a `discriminator`
+for the `text/event-stream` response — no `openapi_extra` needed.
