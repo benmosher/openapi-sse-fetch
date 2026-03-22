@@ -12,6 +12,7 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel
 
 app = FastAPI(title="Echo Chat")
+app.openapi_version = "3.2.0"
 
 app.add_middleware(
     CORSMiddleware,
