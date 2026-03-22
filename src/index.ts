@@ -35,7 +35,8 @@ export async function generate(
   // Generate operation-level types (this populates schemaRegistry with referenced schemas)
   const opTypeNodes: import('typescript').Node[] = [];
   for (const op of ops) {
-    opTypeNodes.push(generateParamsType(op));
+    const paramsNode = generateParamsType(op);
+    if (paramsNode) opTypeNodes.push(paramsNode);
     opTypeNodes.push(...generateEventType(op));
   }
 
@@ -51,7 +52,8 @@ export async function generate(
 
   const opTypeNames = ops.flatMap((op) => {
     const prefix = toPascalCase(op.operationId);
-    const names = [`${prefix}Params`, `${prefix}Event`];
+    const hasParams = op.parameters.length > 0 || op.requestBody !== undefined;
+    const names = [...(hasParams ? [`${prefix}Params`] : []), `${prefix}Event`];
     if (
       op.itemSchema.oneOf &&
       op.itemSchema.discriminator?.propertyName === 'event'

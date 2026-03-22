@@ -103,7 +103,9 @@ function buildVariantTypeNode(variant: any): ts.TypeLiteralNode {
   return ts.factory.createTypeLiteralNode(members);
 }
 
-export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
+export function generateParamsType(
+  op: SseOperation,
+): ts.InterfaceDeclaration | null {
   const typeName = `${toPascalCase(op.operationId)}Params`;
   const members: ts.TypeElement[] = [];
 
@@ -163,6 +165,8 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
       ),
     );
   }
+
+  if (members.length === 0) return null;
 
   return ts.factory.createInterfaceDeclaration(
     [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],

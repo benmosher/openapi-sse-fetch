@@ -170,17 +170,15 @@ export function generateFunction(op: SseOperation, baseUrl: string): string {
     onmessageBody = buildFlatDispatch(op.itemSchema, eventTypeName);
   }
 
-  const paramsArg = `params: ${paramsTypeName}`;
   const needsParams = op.parameters.length > 0 || op.requestBody !== undefined;
 
-  // If no params at all, still generate the interface but make it optional
-  const paramsArgDecl = needsParams
-    ? paramsArg
-    : `params: ${paramsTypeName} = {} as ${paramsTypeName}`;
+  const funcParams = [
+    ...(needsParams ? [`params: ${paramsTypeName}`] : []),
+    `options?: { signal?: AbortSignal; headers?: Record<string, string> }`,
+  ].join(',\n  ');
 
   return `export async function* ${funcName}(
-  ${paramsArgDecl},
-  options?: { signal?: AbortSignal; headers?: Record<string, string> }
+  ${funcParams}
 ): AsyncGenerator<${eventTypeName}> {
   const ch = createChannel<${eventTypeName}>();
   const _url = ${urlExpr};

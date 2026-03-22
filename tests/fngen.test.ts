@@ -43,9 +43,28 @@ describe('generateFunction', () => {
     assert.match(code, /AsyncGenerator<StreamFeedEvent>/);
   });
 
-  it('includes params typed to the Params interface', () => {
-    const code = generateFunction(makeOp({ operationId: 'streamFeed' }), BASE);
+  it('includes params typed to the Params interface when operation has parameters', () => {
+    const code = generateFunction(
+      makeOp({
+        operationId: 'streamFeed',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+      }),
+      BASE,
+    );
     assert.match(code, /StreamFeedParams/);
+  });
+
+  it('omits params argument when operation has no parameters or body', () => {
+    const code = generateFunction(makeOp({ operationId: 'streamFeed' }), BASE);
+    assert.doesNotMatch(code, /StreamFeedParams/);
+    assert.doesNotMatch(code, /params:/);
   });
 
   it('includes optional options parameter with signal and headers', () => {
@@ -314,11 +333,10 @@ describe('generateFunction', () => {
     assert.match(code, /yield\* ch\.iter\(\)/);
   });
 
-  it('uses default empty params when no params or body are needed', () => {
-    // operationId with no parameters and no requestBody
+  it('omits params from function signature when no params or body are needed', () => {
     const code = generateFunction(makeOp({ parameters: [] }), BASE);
-    // Should fall back to default value assignment
-    assert.match(code, /= \{\} as StreamFeedParams/);
+    assert.doesNotMatch(code, /params/);
+    assert.match(code, /options\?/);
   });
 
   it('constructs wrapper object for flat schema with event:string + JSON data + id', () => {

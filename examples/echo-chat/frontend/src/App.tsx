@@ -23,10 +23,9 @@ export default function App() {
 
     (async () => {
       try {
-        for await (const event of getMessagesStream(
-          {},
-          { signal: controller.signal },
-        )) {
+        for await (const event of getMessagesStream({
+          signal: controller.signal,
+        })) {
           if (event.event === 'message') {
             setEntries((prev) => [
               ...prev,

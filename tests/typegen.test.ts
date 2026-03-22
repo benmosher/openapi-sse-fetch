@@ -257,19 +257,27 @@ describe('generateParamsType', () => {
   beforeEach(() => schemaRegistry.clear());
 
   it('uses operationId + "Params" as the interface name', () => {
-    const text = printNode(generateParamsType(makeOp()));
+    const op = makeOp({
+      parameters: [
+        { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+      ],
+    });
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /ListEventsParams/);
   });
 
   it('emits export modifier', () => {
-    const text = printNode(generateParamsType(makeOp()));
+    const op = makeOp({
+      parameters: [
+        { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+      ],
+    });
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /^export interface/);
   });
 
-  it('produces an empty interface when no params and no body', () => {
-    const text = printNode(generateParamsType(makeOp()));
-    // Just braces, no members
-    assert.match(text, /\{\s*\}/);
+  it('returns null when no params and no body', () => {
+    assert.strictEqual(generateParamsType(makeOp()), null);
   });
 
   it('adds required path parameters directly on interface', () => {
@@ -283,7 +291,7 @@ describe('generateParamsType', () => {
         },
       ],
     });
-    const text = printNode(generateParamsType(op));
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /userId: string/);
     // required → no question mark
     assert.doesNotMatch(text, /userId\?/);
@@ -300,7 +308,7 @@ describe('generateParamsType', () => {
         },
       ],
     });
-    const text = printNode(generateParamsType(op));
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /tag\?: string/);
   });
 
@@ -321,7 +329,7 @@ describe('generateParamsType', () => {
         },
       ],
     });
-    const text = printNode(generateParamsType(op));
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /query\?:/);
     assert.match(text, /limit\?: number/);
     assert.match(text, /cursor\?: string/);
@@ -340,7 +348,7 @@ describe('generateParamsType', () => {
         },
       },
     });
-    const text = printNode(generateParamsType(op));
+    const text = printNode(generateParamsType(op)!);
     // body must be required (no ?)
     assert.match(text, /body:/);
     assert.doesNotMatch(text, /body\?:/);
@@ -348,7 +356,7 @@ describe('generateParamsType', () => {
 
   it('uses unknown for body when content schema is absent', () => {
     const op = makeOp({ requestBody: {} });
-    const text = printNode(generateParamsType(op));
+    const text = printNode(generateParamsType(op)!);
     assert.match(text, /body: unknown/);
   });
 });
