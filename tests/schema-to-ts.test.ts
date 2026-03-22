@@ -151,4 +151,32 @@ describe('schemaToTs', () => {
   it('falls back to unknown for unrecognised schema', () => {
     assert.equal(printType(schemaToTs({ format: 'date' })), 'unknown');
   });
+
+  it('maps a string enum to a union of string literals', () => {
+    assert.equal(printType(schemaToTs({ type: 'string', enum: ['ONLINE', 'OFFLINE'] })), '"ONLINE" | "OFFLINE"');
+  });
+
+  it('maps a single-element enum to a single literal (not a union)', () => {
+    assert.equal(printType(schemaToTs({ type: 'string', enum: ['ACTIVE'] })), '"ACTIVE"');
+  });
+
+  it('maps a number enum to a union of numeric literals', () => {
+    assert.equal(printType(schemaToTs({ type: 'integer', enum: [1, 2, 3] })), '1 | 2 | 3');
+  });
+
+  it('maps a mixed enum to a union of literals', () => {
+    const result = printType(schemaToTs({ enum: ['a', 1, true, null] }));
+    assert.equal(result, '"a" | 1 | true | null');
+  });
+
+  it('handles enum inside an object property', () => {
+    const result = printType(schemaToTs({
+      type: 'object',
+      required: ['status'],
+      properties: {
+        status: { type: 'string', enum: ['ONLINE', 'OFFLINE'] },
+      },
+    }));
+    assert.match(result, /status: "ONLINE" \| "OFFLINE"/);
+  });
 });

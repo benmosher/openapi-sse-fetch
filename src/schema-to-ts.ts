@@ -38,6 +38,18 @@ export function schemaToTs(schema: any): ts.TypeNode {
     }
   }
 
+  // enum → union of literals
+  if (Array.isArray(schema.enum)) {
+    const members = schema.enum.map((v: any) => {
+      if (typeof v === 'string') return ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(v));
+      if (typeof v === 'number') return ts.factory.createLiteralTypeNode(ts.factory.createNumericLiteral(v));
+      if (typeof v === 'boolean') return ts.factory.createLiteralTypeNode(v ? ts.factory.createTrue() : ts.factory.createFalse());
+      if (v === null) return ts.factory.createLiteralTypeNode(ts.factory.createNull());
+      return ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
+    });
+    return members.length === 1 ? members[0] : ts.factory.createUnionTypeNode(members);
+  }
+
   // oneOf
   if (schema.oneOf) {
     const types = schema.oneOf.map((s: any) => schemaToTs(s));
