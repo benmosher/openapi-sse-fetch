@@ -131,6 +131,38 @@ describe('generateFunction', () => {
     assert.match(code, /msg\.event === "end"/);
   });
 
+  it('casts to union type when oneOf has no event discriminator', () => {
+    const op = makeOp({
+      itemSchema: {
+        oneOf: [
+          { type: 'object', properties: { event: { type: 'string', const: 'start' }, data: { type: 'string' } } },
+          { type: 'object', properties: { event: { type: 'string', const: 'end' }, data: { type: 'string' } } },
+        ],
+        // no discriminator
+      },
+    });
+    const code = generateFunction(op, BASE);
+    assert.match(code, /as StreamFeedEvent/);
+    assert.doesNotMatch(code, /as StreamFeedStartEvent/);
+    assert.doesNotMatch(code, /as StreamFeedEndEvent/);
+  });
+
+  it('casts to per-variant types when oneOf has discriminator propertyName "event"', () => {
+    const op = makeOp({
+      itemSchema: {
+        oneOf: [
+          { type: 'object', properties: { event: { type: 'string', const: 'start' }, data: { type: 'string' } } },
+          { type: 'object', properties: { event: { type: 'string', const: 'end' }, data: { type: 'string' } } },
+        ],
+        discriminator: { propertyName: 'event' },
+      },
+    });
+    const code = generateFunction(op, BASE);
+    assert.match(code, /as StreamFeedStartEvent/);
+    assert.match(code, /as StreamFeedEndEvent/);
+    assert.doesNotMatch(code, /as StreamFeedEvent\b/);
+  });
+
   it('JSON.parses data when contentMediaType is application/json', () => {
     const op = makeOp({
       itemSchema: {

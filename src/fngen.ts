@@ -39,7 +39,7 @@ function buildUrlExpression(path: string, op: SseOperation): string {
 /**
  * Build the onmessage handler body for a oneOf itemSchema.
  */
-function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string): string {
+function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string, pascalPrefix: string, hasDiscriminator: boolean): string {
   const cases: string[] = [];
 
   for (const variant of oneOfVariants) {
@@ -66,9 +66,13 @@ function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string): string
       pushFields.push('id: msg.id');
     }
 
+    const castTarget = hasDiscriminator
+      ? `${pascalPrefix}${toPascalCase(eventConst)}Event`
+      : eventTypeName;
+
     cases.push(
       `      if (msg.event === ${JSON.stringify(eventConst)}) {
-        ch.push({ ${pushFields.join(', ')} } as ${eventTypeName});
+        ch.push({ ${pushFields.join(', ')} } as ${castTarget});
         return;
       }`
     );
@@ -145,7 +149,8 @@ export function generateFunction(op: SseOperation, baseUrl: string): string {
   // Build onmessage dispatch
   let onmessageBody: string;
   if (op.itemSchema.oneOf) {
-    onmessageBody = buildOneOfDispatch(op.itemSchema.oneOf, eventTypeName);
+    const hasDiscriminator = op.itemSchema.discriminator?.propertyName === 'event';
+    onmessageBody = buildOneOfDispatch(op.itemSchema.oneOf, eventTypeName, pascalName, hasDiscriminator);
   } else {
     onmessageBody = buildFlatDispatch(op.itemSchema, eventTypeName);
   }
