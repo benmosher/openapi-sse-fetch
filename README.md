@@ -24,11 +24,11 @@ npm/pnpm will automatically compile the TypeScript source via the `prepare` scri
 sse-codegen --input <path>  --output <dir>  [--base-url <url>]
 ```
 
-| Option | Description | Default |
-|---|---|---|
-| `--input` | Path to OpenAPI spec (YAML or JSON) | required |
-| `--output` | Output directory (created if needed) | `./generated` |
-| `--base-url` | Base URL override | First `servers[].url` in spec |
+| Option       | Description                          | Default                       |
+| ------------ | ------------------------------------ | ----------------------------- |
+| `--input`    | Path to OpenAPI spec (YAML or JSON)  | required                      |
+| `--output`   | Output directory (created if needed) | `./generated`                 |
+| `--base-url` | Base URL override                    | First `servers[].url` in spec |
 
 ---
 
@@ -102,53 +102,53 @@ variant types (one per `event.const` value), and union aliases:
 
 ```typescript
 export type ChatCompletionRequest = {
-    messages: Message[];
-    stream?: boolean;
+  messages: Message[];
+  stream?: boolean;
 };
 
 export type Message = {
-    role: string;
-    content: string;
+  role: string;
+  content: string;
 };
 
 export type ChatMessage = {
-    content: string;
-    role?: string;
-    finish_reason?: string;
+  content: string;
+  role?: string;
+  finish_reason?: string;
 };
 
 export type ApiError = {
-    code: string;
-    message: string;
+  code: string;
+  message: string;
 };
 
 export interface PostChatCompletionsParams {
-    body: ChatCompletionRequest;
+  body: ChatCompletionRequest;
 }
 
 // Named variant types — individually importable
 export type PostChatCompletionsMessageEvent = {
-    event: "message";
-    data: ChatMessage;  // JSON-parsed from msg.data
-    id?: string;
+  event: 'message';
+  data: ChatMessage; // JSON-parsed from msg.data
+  id?: string;
 };
 
 export type PostChatCompletionsDoneEvent = {
-    event: "done";
-    data: string;
+  event: 'done';
+  data: string;
 };
 
 export type PostChatCompletionsErrorEvent = {
-    event: "error";
-    data: ApiError;    // JSON-parsed from msg.data
-    id?: string;
+  event: 'error';
+  data: ApiError; // JSON-parsed from msg.data
+  id?: string;
 };
 
 // Union alias references the named types
 export type PostChatCompletionsEvent =
-    PostChatCompletionsMessageEvent |
-    PostChatCompletionsDoneEvent |
-    PostChatCompletionsErrorEvent;
+  | PostChatCompletionsMessageEvent
+  | PostChatCompletionsDoneEvent
+  | PostChatCompletionsErrorEvent;
 ```
 
 ### `generated/client.ts`
@@ -158,13 +158,16 @@ Typed `async function*` wrappers — one per SSE operation:
 ```typescript
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { createChannel } from './_helpers';
-import type { PostChatCompletionsParams, PostChatCompletionsEvent } from './types';
+import type {
+  PostChatCompletionsParams,
+  PostChatCompletionsEvent,
+} from './types';
 
-const BASE_URL = "https://api.example.com/v1";
+const BASE_URL = 'https://api.example.com/v1';
 
 export async function* postChatCompletions(
   params: PostChatCompletionsParams,
-  options?: { signal?: AbortSignal; headers?: Record<string, string> }
+  options?: { signal?: AbortSignal; headers?: Record<string, string> },
 ): AsyncGenerator<PostChatCompletionsEvent> {
   const ch = createChannel<PostChatCompletionsEvent>();
   const _url = `${BASE_URL}/chat/completions`;
@@ -178,21 +181,34 @@ export async function* postChatCompletions(
       if (!res.ok) throw new Error(`SSE open failed: ${res.status}`);
     },
     onmessage(msg) {
-      if (msg.event === "message") {
-        ch.push({ event: "message", data: JSON.parse(msg.data), id: msg.id } as PostChatCompletionsEvent);
+      if (msg.event === 'message') {
+        ch.push({
+          event: 'message',
+          data: JSON.parse(msg.data),
+          id: msg.id,
+        } as PostChatCompletionsEvent);
         return;
       }
-      if (msg.event === "done") {
-        ch.push({ event: "done", data: msg.data } as PostChatCompletionsEvent);
+      if (msg.event === 'done') {
+        ch.push({ event: 'done', data: msg.data } as PostChatCompletionsEvent);
         return;
       }
-      if (msg.event === "error") {
-        ch.push({ event: "error", data: JSON.parse(msg.data), id: msg.id } as PostChatCompletionsEvent);
+      if (msg.event === 'error') {
+        ch.push({
+          event: 'error',
+          data: JSON.parse(msg.data),
+          id: msg.id,
+        } as PostChatCompletionsEvent);
         return;
       }
     },
-    onclose() { ch.done(); },
-    onerror(err) { ch.error(err); throw err; },
+    onclose() {
+      ch.done();
+    },
+    onerror(err) {
+      ch.error(err);
+      throw err;
+    },
   }).catch((err: unknown) => ch.error(err));
 
   yield* ch.iter();
@@ -230,11 +246,11 @@ const stream = postChatCompletions({
 
 for await (const event of stream) {
   if (event.event === 'message') {
-    process.stdout.write(event.data.content);  // typed as ChatMessage
+    process.stdout.write(event.data.content); // typed as ChatMessage
   } else if (event.event === 'done') {
     console.log('\nDone');
   } else if (event.event === 'error') {
-    console.error(event.data.message);  // typed as ApiError
+    console.error(event.data.message); // typed as ApiError
   }
 }
 ```
@@ -244,7 +260,10 @@ Cancellation via `AbortSignal`:
 ```typescript
 const controller = new AbortController();
 
-for await (const event of postChatCompletions({ body: { messages } }, { signal: controller.signal })) {
+for await (const event of postChatCompletions(
+  { body: { messages } },
+  { signal: controller.signal },
+)) {
   if (shouldStop) controller.abort();
   // ...
 }

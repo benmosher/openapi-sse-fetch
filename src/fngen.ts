@@ -39,7 +39,12 @@ function buildUrlExpression(path: string, op: SseOperation): string {
 /**
  * Build the onmessage handler body for a oneOf itemSchema.
  */
-function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string, pascalPrefix: string, hasDiscriminator: boolean): string {
+function buildOneOfDispatch(
+  oneOfVariants: any[],
+  eventTypeName: string,
+  pascalPrefix: string,
+  hasDiscriminator: boolean,
+): string {
   const cases: string[] = [];
 
   for (const variant of oneOfVariants) {
@@ -49,8 +54,7 @@ function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string, pascalP
 
     if (eventConst === undefined) continue;
 
-    const isJsonData =
-      dataProp?.contentMediaType === 'application/json';
+    const isJsonData = dataProp?.contentMediaType === 'application/json';
 
     const dataExpr = dataProp
       ? isJsonData
@@ -74,7 +78,7 @@ function buildOneOfDispatch(oneOfVariants: any[], eventTypeName: string, pascalP
       `      if (msg.event === ${JSON.stringify(eventConst)}) {
         ch.push({ ${pushFields.join(', ')} } as ${castTarget});
         return;
-      }`
+      }`,
     );
   }
 
@@ -98,7 +102,9 @@ function buildFlatDispatch(itemSchema: any, eventTypeName: string): string {
 
     const isJsonData = dataProp?.contentMediaType === 'application/json';
     const dataExpr = dataProp
-      ? isJsonData ? 'JSON.parse(msg.data)' : 'msg.data'
+      ? isJsonData
+        ? 'JSON.parse(msg.data)'
+        : 'msg.data'
       : undefined;
 
     const pushFields: string[] = ['event: msg.event'];
@@ -109,7 +115,9 @@ function buildFlatDispatch(itemSchema: any, eventTypeName: string): string {
   }
 
   // If it's a simple primitive, just push msg.data
-  const t = Array.isArray(itemSchema.type) ? itemSchema.type[0] : itemSchema.type;
+  const t = Array.isArray(itemSchema.type)
+    ? itemSchema.type[0]
+    : itemSchema.type;
   if (t === 'string' || t === 'number' || t === 'boolean' || t === 'integer') {
     return `      ch.push(msg.data as unknown as ${eventTypeName});`;
   }
@@ -121,7 +129,8 @@ function buildFlatDispatch(itemSchema: any, eventTypeName: string): string {
  * Generate a complete async generator function as a string for an SSE operation.
  */
 export function generateFunction(op: SseOperation, baseUrl: string): string {
-  const funcName = op.operationId.charAt(0).toLowerCase() + op.operationId.slice(1);
+  const funcName =
+    op.operationId.charAt(0).toLowerCase() + op.operationId.slice(1);
   const pascalName = toPascalCase(op.operationId);
   const paramsTypeName = `${pascalName}Params`;
   const eventTypeName = `${pascalName}Event`;
@@ -149,16 +158,20 @@ export function generateFunction(op: SseOperation, baseUrl: string): string {
   // Build onmessage dispatch
   let onmessageBody: string;
   if (op.itemSchema.oneOf) {
-    const hasDiscriminator = op.itemSchema.discriminator?.propertyName === 'event';
-    onmessageBody = buildOneOfDispatch(op.itemSchema.oneOf, eventTypeName, pascalName, hasDiscriminator);
+    const hasDiscriminator =
+      op.itemSchema.discriminator?.propertyName === 'event';
+    onmessageBody = buildOneOfDispatch(
+      op.itemSchema.oneOf,
+      eventTypeName,
+      pascalName,
+      hasDiscriminator,
+    );
   } else {
     onmessageBody = buildFlatDispatch(op.itemSchema, eventTypeName);
   }
 
   const paramsArg = `params: ${paramsTypeName}`;
-  const needsParams =
-    op.parameters.length > 0 ||
-    op.requestBody !== undefined;
+  const needsParams = op.parameters.length > 0 || op.requestBody !== undefined;
 
   // If no params at all, still generate the interface but make it optional
   const paramsArgDecl = needsParams

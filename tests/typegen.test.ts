@@ -15,7 +15,13 @@ import type { SseOperation } from '../src/extract';
 // ---------------------------------------------------------------------------
 
 function printNode(node: ts.Node): string {
-  const sf = ts.createSourceFile('t.ts', '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const sf = ts.createSourceFile(
+    't.ts',
+    '',
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TS,
+  );
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   return printer.printNode(ts.EmitHint.Unspecified, node, sf);
 }
@@ -97,8 +103,20 @@ describe('generateEventType', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'ping' }, data: { type: 'string' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'pong' }, data: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'ping' },
+              data: { type: 'string' },
+            },
+          },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'pong' },
+              data: { type: 'string' },
+            },
+          },
         ],
       },
     });
@@ -113,8 +131,20 @@ describe('generateEventType', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'ping' }, data: { type: 'string' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'pong' }, data: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'ping' },
+              data: { type: 'string' },
+            },
+          },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'pong' },
+              data: { type: 'string' },
+            },
+          },
         ],
       },
     });
@@ -130,8 +160,14 @@ describe('generateEventType', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'ping' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'pong' } } },
+          {
+            type: 'object',
+            properties: { event: { type: 'string', const: 'ping' } },
+          },
+          {
+            type: 'object',
+            properties: { event: { type: 'string', const: 'pong' } },
+          },
         ],
       },
     });
@@ -143,7 +179,10 @@ describe('generateEventType', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'ping' } } },
+          {
+            type: 'object',
+            properties: { event: { type: 'string', const: 'ping' } },
+          },
           { type: 'object', properties: { event: { type: 'string' } } }, // no const
         ],
       },
@@ -152,14 +191,21 @@ describe('generateEventType', () => {
     assert.equal(generateEventType(op).length, 2);
     const unionText = printNode(generateEventType(op)[1]);
     assert.match(unionText, /ListEventsPingEvent/); // named ref
-    assert.match(unionText, /event: string/);        // inlined
+    assert.match(unionText, /event: string/); // inlined
   });
 
   it('includes optional id field in named variant type', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'msg' }, data: { type: 'string' }, id: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'msg' },
+              data: { type: 'string' },
+              id: { type: 'string' },
+            },
+          },
         ],
       },
     });
@@ -168,7 +214,9 @@ describe('generateEventType', () => {
   });
 
   it('generates a single alias for flat (non-oneOf) itemSchema', () => {
-    const op = makeOp({ itemSchema: { type: 'object', properties: { x: { type: 'number' } } } });
+    const op = makeOp({
+      itemSchema: { type: 'object', properties: { x: { type: 'number' } } },
+    });
     assert.equal(generateEventType(op).length, 1);
     assert.match(printEventTypes(op), /x\?: number/);
   });
@@ -184,7 +232,11 @@ describe('generateEventType', () => {
               data: {
                 type: 'string',
                 contentMediaType: 'application/json',
-                contentSchema: { title: 'Payload', type: 'object', properties: { msg: { type: 'string' } } },
+                contentSchema: {
+                  title: 'Payload',
+                  type: 'object',
+                  properties: { msg: { type: 'string' } },
+                },
               },
             },
           },
@@ -222,7 +274,14 @@ describe('generateParamsType', () => {
 
   it('adds required path parameters directly on interface', () => {
     const op = makeOp({
-      parameters: [{ in: 'path', name: 'userId', required: true, schema: { type: 'string' } }],
+      parameters: [
+        {
+          in: 'path',
+          name: 'userId',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
     });
     const text = printNode(generateParamsType(op));
     assert.match(text, /userId: string/);
@@ -232,7 +291,14 @@ describe('generateParamsType', () => {
 
   it('adds optional path parameters with question mark', () => {
     const op = makeOp({
-      parameters: [{ in: 'path', name: 'tag', required: false, schema: { type: 'string' } }],
+      parameters: [
+        {
+          in: 'path',
+          name: 'tag',
+          required: false,
+          schema: { type: 'string' },
+        },
+      ],
     });
     const text = printNode(generateParamsType(op));
     assert.match(text, /tag\?: string/);
@@ -241,8 +307,18 @@ describe('generateParamsType', () => {
   it('groups query params under optional query property', () => {
     const op = makeOp({
       parameters: [
-        { in: 'query', name: 'limit', required: false, schema: { type: 'integer' } },
-        { in: 'query', name: 'cursor', required: false, schema: { type: 'string' } },
+        {
+          in: 'query',
+          name: 'limit',
+          required: false,
+          schema: { type: 'integer' },
+        },
+        {
+          in: 'query',
+          name: 'cursor',
+          required: false,
+          schema: { type: 'string' },
+        },
       ],
     });
     const text = printNode(generateParamsType(op));
@@ -256,7 +332,10 @@ describe('generateParamsType', () => {
       requestBody: {
         content: {
           'application/json': {
-            schema: { type: 'object', properties: { prompt: { type: 'string' } } },
+            schema: {
+              type: 'object',
+              properties: { prompt: { type: 'string' } },
+            },
           },
         },
       },
@@ -286,18 +365,25 @@ describe('generateReferencedSchemaTypes', () => {
   });
 
   it('emits one type alias per registry entry', () => {
-    schemaRegistry.set('Foo', { type: 'object', properties: { x: { type: 'string' } } });
+    schemaRegistry.set('Foo', {
+      type: 'object',
+      properties: { x: { type: 'string' } },
+    });
     schemaRegistry.set('Bar', { type: 'string' });
     const nodes = generateReferencedSchemaTypes();
     assert.equal(nodes.length, 2);
-    const names = nodes.map(n => (n as ts.TypeAliasDeclaration).name.text);
+    const names = nodes.map((n) => (n as ts.TypeAliasDeclaration).name.text);
     assert.ok(names.includes('Foo'));
     assert.ok(names.includes('Bar'));
   });
 
   it('does not cause infinite recursion for self-titled schemas', () => {
     // The schema has title set; generateReferencedSchemaTypes strips it internally
-    schemaRegistry.set('Recursive', { title: 'Recursive', type: 'object', properties: {} });
+    schemaRegistry.set('Recursive', {
+      title: 'Recursive',
+      type: 'object',
+      properties: {},
+    });
     assert.doesNotThrow(() => generateReferencedSchemaTypes());
   });
 });

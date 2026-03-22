@@ -36,14 +36,21 @@ describe('generate() – sample openapi.yaml', () => {
   async function ensureFiles() {
     if (!ready) {
       schemaRegistry.clear();
-      files = await generate({ inputPath: SPEC_PATH, outputDir: '/tmp/unused' });
+      files = await generate({
+        inputPath: SPEC_PATH,
+        outputDir: '/tmp/unused',
+      });
       ready = true;
     }
   }
 
   it('produces exactly the three expected output files', async () => {
     await ensureFiles();
-    assert.deepEqual(Object.keys(files).sort(), ['_helpers.ts', 'client.ts', 'types.ts']);
+    assert.deepEqual(Object.keys(files).sort(), [
+      '_helpers.ts',
+      'client.ts',
+      'types.ts',
+    ]);
   });
 
   // -------------------------------------------------------------------------
@@ -101,7 +108,9 @@ describe('generate() – sample openapi.yaml', () => {
   it('types.ts union alias references named variant types', async () => {
     await ensureFiles();
     // The union should reference the named types, not inline the literals
-    const unionMatch = files['types.ts'].match(/PostChatCompletionsEvent\s*=([^;]+);/s);
+    const unionMatch = files['types.ts'].match(
+      /PostChatCompletionsEvent\s*=([^;]+);/s,
+    );
     assert.ok(unionMatch, 'PostChatCompletionsEvent type alias not found');
     assert.match(unionMatch![1], /PostChatCompletionsMessageEvent/);
     assert.match(unionMatch![1], /PostChatCompletionsDoneEvent/);
@@ -131,7 +140,8 @@ describe('generate() – sample openapi.yaml', () => {
   it('types.ts ApiError has required code and message fields', async () => {
     await ensureFiles();
     // Required fields should have no question mark
-    const apiErrorBlock = files['types.ts'].match(/ApiError[\s\S]*?\{([\s\S]*?)\}/)?.[1] ?? '';
+    const apiErrorBlock =
+      files['types.ts'].match(/ApiError[\s\S]*?\{([\s\S]*?)\}/)?.[1] ?? '';
     assert.match(apiErrorBlock, /code: string/);
     assert.match(apiErrorBlock, /message: string/);
     assert.doesNotMatch(apiErrorBlock, /code\?/);
@@ -176,12 +186,18 @@ describe('generate() – sample openapi.yaml', () => {
 
   it('client.ts sets BASE_URL from the spec server', async () => {
     await ensureFiles();
-    assert.match(files['client.ts'], /const BASE_URL = "https:\/\/api\.example\.com\/v1"/);
+    assert.match(
+      files['client.ts'],
+      /const BASE_URL = "https:\/\/api\.example\.com\/v1"/,
+    );
   });
 
   it('client.ts exports postChatCompletions function', async () => {
     await ensureFiles();
-    assert.match(files['client.ts'], /export async function\* postChatCompletions/);
+    assert.match(
+      files['client.ts'],
+      /export async function\* postChatCompletions/,
+    );
   });
 
   it('client.ts uses POST method', async () => {
@@ -231,21 +247,24 @@ describe('generate() – error handling', () => {
     const dir = path.join(os.tmpdir(), `sse-test-${Date.now()}`);
     fs.mkdirSync(dir);
     const specPath = path.join(dir, 'empty.yaml');
-    fs.writeFileSync(specPath, [
-      'openapi: 3.1.0',
-      'info:',
-      '  title: Empty',
-      '  version: 1.0.0',
-      'paths:',
-      '  /ping:',
-      '    get:',
-      '      responses:',
-      '        "200":',
-      '          description: ok',
-    ].join('\n'));
+    fs.writeFileSync(
+      specPath,
+      [
+        'openapi: 3.1.0',
+        'info:',
+        '  title: Empty',
+        '  version: 1.0.0',
+        'paths:',
+        '  /ping:',
+        '    get:',
+        '      responses:',
+        '        "200":',
+        '          description: ok',
+      ].join('\n'),
+    );
     await assert.rejects(
       () => generate({ inputPath: specPath, outputDir: dir }),
-      /No SSE operations found/
+      /No SSE operations found/,
     );
     fs.rmSync(dir, { recursive: true });
   });
@@ -293,28 +312,42 @@ describe('generated output – tsc type checking', () => {
     const files = await generate({ inputPath: SPEC_PATH, outputDir: outDir });
     writeFiles(outDir, files);
 
-    fs.writeFileSync(path.join(outDir, 'tsconfig.json'), JSON.stringify({
-      compilerOptions: {
-        target: 'ES2020',
-        module: 'commonjs',
-        lib: ['ES2020', 'DOM'],
-        strict: true,
-        esModuleInterop: true,
-        noEmit: true,
-        skipLibCheck: false,
-      },
-      include: ['*.ts'],
-    }, null, 2));
+    fs.writeFileSync(
+      path.join(outDir, 'tsconfig.json'),
+      JSON.stringify(
+        {
+          compilerOptions: {
+            target: 'ES2020',
+            module: 'commonjs',
+            lib: ['ES2020', 'DOM'],
+            strict: true,
+            esModuleInterop: true,
+            noEmit: true,
+            skipLibCheck: false,
+          },
+          include: ['*.ts'],
+        },
+        null,
+        2,
+      ),
+    );
 
     const tsc = path.join(projectRoot, 'node_modules', '.bin', 'tsc');
-    const result = spawnSync(tsc, ['--project', path.join(outDir, 'tsconfig.json')], {
-      cwd: outDir,
-      encoding: 'utf-8',
-    });
+    const result = spawnSync(
+      tsc,
+      ['--project', path.join(outDir, 'tsconfig.json')],
+      {
+        cwd: outDir,
+        encoding: 'utf-8',
+      },
+    );
 
     fs.rmSync(outDir, { recursive: true });
 
-    assert.strictEqual(result.status, 0,
-      `tsc type-check failed:\n${result.stdout}\n${result.stderr}`);
+    assert.strictEqual(
+      result.status,
+      0,
+      `tsc type-check failed:\n${result.stdout}\n${result.stderr}`,
+    );
   });
 });

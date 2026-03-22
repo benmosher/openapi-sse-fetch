@@ -50,7 +50,9 @@ describe('extractSseOperations', () => {
             operationId: 'getJson',
             parameters: [],
             responses: {
-              '200': { content: { 'application/json': { schema: { type: 'object' } } } },
+              '200': {
+                content: { 'application/json': { schema: { type: 'object' } } },
+              },
             },
           },
         },
@@ -102,7 +104,10 @@ describe('extractSseOperations', () => {
               '200': {
                 content: {
                   'text/event-stream': {
-                    itemSchema: { type: 'object', properties: { data: { type: 'string' } } },
+                    itemSchema: {
+                      type: 'object',
+                      properties: { data: { type: 'string' } },
+                    },
                   },
                 },
               },
@@ -114,7 +119,10 @@ describe('extractSseOperations', () => {
     const ops = extractSseOperations(spec);
     assert.equal(ops.length, 1);
     assert.equal(ops[0].operationId, 'fastApiStream');
-    assert.deepEqual(ops[0].itemSchema, { type: 'object', properties: { data: { type: 'string' } } });
+    assert.deepEqual(ops[0].itemSchema, {
+      type: 'object',
+      properties: { data: { type: 'string' } },
+    });
   });
 
   it('synthesises an operationId when none is given', () => {
@@ -143,13 +151,17 @@ describe('extractSseOperations', () => {
   });
 
   it('captures requestBody when present', () => {
-    const rb = { content: { 'application/json': { schema: { type: 'object' } } } };
+    const rb = {
+      content: { 'application/json': { schema: { type: 'object' } } },
+    };
     const ops = extractSseOperations(makeSpec({ requestBody: rb }));
     assert.deepEqual(ops[0].requestBody, rb);
   });
 
   it('captures parameters array', () => {
-    const params = [{ in: 'query', name: 'limit', schema: { type: 'integer' } }];
+    const params = [
+      { in: 'query', name: 'limit', schema: { type: 'integer' } },
+    ];
     const ops = extractSseOperations(makeSpec({ parameters: params }));
     assert.deepEqual(ops[0].parameters, params);
   });
@@ -163,7 +175,11 @@ describe('extractSseOperations', () => {
             parameters: [],
             responses: {
               '200': {
-                content: { 'text/event-stream': { schema: { type: 'object', itemSchema: { type: 'string' } } } },
+                content: {
+                  'text/event-stream': {
+                    schema: { type: 'object', itemSchema: { type: 'string' } },
+                  },
+                },
               },
             },
           },
@@ -174,7 +190,11 @@ describe('extractSseOperations', () => {
             parameters: [],
             responses: {
               '200': {
-                content: { 'text/event-stream': { schema: { type: 'object', itemSchema: { type: 'number' } } } },
+                content: {
+                  'text/event-stream': {
+                    schema: { type: 'object', itemSchema: { type: 'number' } },
+                  },
+                },
               },
             },
           },
@@ -183,7 +203,7 @@ describe('extractSseOperations', () => {
     };
     const ops = extractSseOperations(spec);
     assert.equal(ops.length, 2);
-    assert.deepEqual(ops.map(o => o.operationId).sort(), ['opA', 'opB']);
+    assert.deepEqual(ops.map((o) => o.operationId).sort(), ['opA', 'opB']);
   });
 
   it('ignores non-SSE methods on a path that also has an SSE method', () => {
@@ -195,7 +215,11 @@ describe('extractSseOperations', () => {
             parameters: [],
             responses: {
               '200': {
-                content: { 'text/event-stream': { schema: { type: 'object', itemSchema: { type: 'string' } } } },
+                content: {
+                  'text/event-stream': {
+                    schema: { type: 'object', itemSchema: { type: 'string' } },
+                  },
+                },
               },
             },
           },
@@ -203,7 +227,9 @@ describe('extractSseOperations', () => {
             operationId: 'jsonOp',
             parameters: [],
             responses: {
-              '200': { content: { 'application/json': { schema: { type: 'object' } } } },
+              '200': {
+                content: { 'application/json': { schema: { type: 'object' } } },
+              },
             },
           },
         },

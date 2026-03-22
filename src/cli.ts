@@ -20,7 +20,9 @@ program
         baseUrl: opts.baseUrl,
       });
       writeFiles(path.resolve(opts.output), files);
-      console.log(`Generated ${Object.keys(files).length} files to ${opts.output}`);
+      console.log(
+        `Generated ${Object.keys(files).length} files to ${opts.output}`,
+      );
     } catch (err) {
       console.error('Error:', (err as Error).message);
       process.exit(1);

@@ -1,0 +1,9 @@
+# Ignore artifacts
+dist
+dist-test
+dist-typecheck-test
+generated
+node_modules
+package-lock.json
+examples/echo-chat/backend/uv.lock
+examples/echo-chat/backend/.venv

@@ -1,6 +1,11 @@
 import { loadSpec } from './parse';
 import { extractSseOperations } from './extract';
-import { generateEventType, generateParamsType, generateReferencedSchemaTypes, toPascalCase } from './typegen';
+import {
+  generateEventType,
+  generateParamsType,
+  generateReferencedSchemaTypes,
+  toPascalCase,
+} from './typegen';
 import { generateFunction } from './fngen';
 import { emitToString } from './emit';
 import { schemaRegistry } from './schema-to-ts';
@@ -12,7 +17,9 @@ export interface GenerateOptions {
   baseUrl?: string;
 }
 
-export async function generate(opts: GenerateOptions): Promise<Record<string, string>> {
+export async function generate(
+  opts: GenerateOptions,
+): Promise<Record<string, string>> {
   const spec = await loadSpec(opts.inputPath);
   const ops = extractSseOperations(spec);
 
@@ -40,12 +47,15 @@ export async function generate(opts: GenerateOptions): Promise<Record<string, st
     emitToString([...referencedSchemaNodes, ...opTypeNodes]);
 
   // Generate client functions (string-based)
-  const fnStrings = ops.map(op => generateFunction(op, baseUrl));
+  const fnStrings = ops.map((op) => generateFunction(op, baseUrl));
 
-  const opTypeNames = ops.flatMap(op => {
+  const opTypeNames = ops.flatMap((op) => {
     const prefix = toPascalCase(op.operationId);
     const names = [`${prefix}Params`, `${prefix}Event`];
-    if (op.itemSchema.oneOf && op.itemSchema.discriminator?.propertyName === 'event') {
+    if (
+      op.itemSchema.oneOf &&
+      op.itemSchema.discriminator?.propertyName === 'event'
+    ) {
       for (const variant of op.itemSchema.oneOf) {
         const eventConst = variant.properties?.event?.const;
         if (typeof eventConst === 'string') {

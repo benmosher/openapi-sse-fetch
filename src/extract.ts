@@ -17,10 +17,12 @@ export function extractSseOperations(spec: any): SseOperation[] {
         const sseContent = (response as any)?.content?.['text/event-stream'];
         // Support both the bump.sh spec format (schema.itemSchema) and the
         // FastAPI native format where itemSchema sits directly on the content object.
-        const itemSchema = sseContent?.schema?.itemSchema ?? sseContent?.itemSchema;
+        const itemSchema =
+          sseContent?.schema?.itemSchema ?? sseContent?.itemSchema;
         if (!itemSchema) continue;
         ops.push({
-          operationId: op.operationId || `${method}${path.replace(/[^a-zA-Z0-9]/g, '_')}`,
+          operationId:
+            op.operationId || `${method}${path.replace(/[^a-zA-Z0-9]/g, '_')}`,
           method,
           path,
           parameters: op.parameters || [],

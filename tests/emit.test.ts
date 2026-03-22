@@ -20,7 +20,7 @@ describe('emitToString', () => {
       [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
       'Foo',
       undefined,
-      ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
+      ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
     );
     const result = emitToString([node]);
     assert.match(result, /export type Foo = string/);
@@ -32,7 +32,7 @@ describe('emitToString', () => {
         undefined,
         name,
         undefined,
-        ts.factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword)
+        ts.factory.createKeywordTypeNode(ts.SyntaxKind.NumberKeyword),
       );
     const result = emitToString([makeAlias('A'), makeAlias('B')]);
     assert.match(result, /type A/);
@@ -52,9 +52,9 @@ describe('emitToString', () => {
           undefined,
           'id',
           undefined,
-          ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
+          ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
         ),
-      ]
+      ],
     );
     const result = emitToString([iface]);
     assert.match(result, /export interface Bar/);
@@ -80,8 +80,14 @@ describe('writeFiles', () => {
       'foo.ts': 'export const x = 1;',
       'bar.ts': 'export const y = 2;',
     });
-    assert.equal(fs.readFileSync(path.join(dir, 'foo.ts'), 'utf-8'), 'export const x = 1;');
-    assert.equal(fs.readFileSync(path.join(dir, 'bar.ts'), 'utf-8'), 'export const y = 2;');
+    assert.equal(
+      fs.readFileSync(path.join(dir, 'foo.ts'), 'utf-8'),
+      'export const x = 1;',
+    );
+    assert.equal(
+      fs.readFileSync(path.join(dir, 'bar.ts'), 'utf-8'),
+      'export const y = 2;',
+    );
     fs.rmSync(dir, { recursive: true });
   });
 
@@ -90,14 +96,25 @@ describe('writeFiles', () => {
     fs.mkdirSync(dir);
     fs.writeFileSync(path.join(dir, 'x.ts'), 'old content');
     writeFiles(dir, { 'x.ts': 'new content' });
-    assert.equal(fs.readFileSync(path.join(dir, 'x.ts'), 'utf-8'), 'new content');
+    assert.equal(
+      fs.readFileSync(path.join(dir, 'x.ts'), 'utf-8'),
+      'new content',
+    );
     fs.rmSync(dir, { recursive: true });
   });
 
   it('handles nested directories via recursive mkdir', () => {
-    const dir = path.join(os.tmpdir(), `sse-test-${Date.now()}`, 'deep', 'nested');
+    const dir = path.join(
+      os.tmpdir(),
+      `sse-test-${Date.now()}`,
+      'deep',
+      'nested',
+    );
     writeFiles(dir, { 'out.ts': '// ok' });
     assert.ok(fs.existsSync(path.join(dir, 'out.ts')));
-    fs.rmSync(path.join(os.tmpdir(), path.basename(path.dirname(path.dirname(dir)))), { recursive: true });
+    fs.rmSync(
+      path.join(os.tmpdir(), path.basename(path.dirname(path.dirname(dir)))),
+      { recursive: true },
+    );
   });
 });

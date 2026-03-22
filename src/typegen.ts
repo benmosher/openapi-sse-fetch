@@ -17,10 +17,14 @@ export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration[] {
   const schema = op.itemSchema;
 
   if (!schema.oneOf) {
-    return [ts.factory.createTypeAliasDeclaration(
-      [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-      unionTypeName, undefined, schemaToTs(schema),
-    )];
+    return [
+      ts.factory.createTypeAliasDeclaration(
+        [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+        unionTypeName,
+        undefined,
+        schemaToTs(schema),
+      ),
+    ];
   }
 
   const namedDecls: ts.TypeAliasDeclaration[] = [];
@@ -32,11 +36,17 @@ export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration[] {
 
     if (typeof eventConst === 'string') {
       const variantTypeName = `${prefix}${toPascalCase(eventConst)}Event`;
-      namedDecls.push(ts.factory.createTypeAliasDeclaration(
-        [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-        variantTypeName, undefined, variantNode,
-      ));
-      unionMembers.push(ts.factory.createTypeReferenceNode(variantTypeName, undefined));
+      namedDecls.push(
+        ts.factory.createTypeAliasDeclaration(
+          [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+          variantTypeName,
+          undefined,
+          variantNode,
+        ),
+      );
+      unionMembers.push(
+        ts.factory.createTypeReferenceNode(variantTypeName, undefined),
+      );
     } else {
       unionMembers.push(variantNode);
     }
@@ -44,7 +54,8 @@ export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration[] {
 
   const unionDecl = ts.factory.createTypeAliasDeclaration(
     [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
-    unionTypeName, undefined,
+    unionTypeName,
+    undefined,
     ts.factory.createUnionTypeNode(unionMembers),
   );
 
@@ -53,18 +64,41 @@ export function generateEventType(op: SseOperation): ts.TypeAliasDeclaration[] {
 
 function buildVariantTypeNode(variant: any): ts.TypeLiteralNode {
   const members: ts.TypeElement[] = [];
-  const { event: eventProp, data: dataProp, id: idProp } = variant.properties ?? {};
+  const {
+    event: eventProp,
+    data: dataProp,
+    id: idProp,
+  } = variant.properties ?? {};
 
   if (eventProp) {
-    members.push(ts.factory.createPropertySignature(undefined, 'event', undefined, schemaToTs(eventProp)));
+    members.push(
+      ts.factory.createPropertySignature(
+        undefined,
+        'event',
+        undefined,
+        schemaToTs(eventProp),
+      ),
+    );
   }
   if (dataProp) {
-    members.push(ts.factory.createPropertySignature(undefined, 'data', undefined, schemaToTs(dataProp)));
+    members.push(
+      ts.factory.createPropertySignature(
+        undefined,
+        'data',
+        undefined,
+        schemaToTs(dataProp),
+      ),
+    );
   }
   if (idProp) {
-    members.push(ts.factory.createPropertySignature(
-      undefined, 'id', ts.factory.createToken(ts.SyntaxKind.QuestionToken), schemaToTs(idProp),
-    ));
+    members.push(
+      ts.factory.createPropertySignature(
+        undefined,
+        'id',
+        ts.factory.createToken(ts.SyntaxKind.QuestionToken),
+        schemaToTs(idProp),
+      ),
+    );
   }
   return ts.factory.createTypeLiteralNode(members);
 }
@@ -80,9 +114,13 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
       ts.factory.createPropertySignature(
         undefined,
         p.name,
-        p.required ? undefined : ts.factory.createToken(ts.SyntaxKind.QuestionToken),
-        p.schema ? schemaToTs(p.schema) : ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
-      )
+        p.required
+          ? undefined
+          : ts.factory.createToken(ts.SyntaxKind.QuestionToken),
+        p.schema
+          ? schemaToTs(p.schema)
+          : ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+      ),
     );
   }
 
@@ -93,17 +131,21 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
       ts.factory.createPropertySignature(
         undefined,
         p.name,
-        p.required ? undefined : ts.factory.createToken(ts.SyntaxKind.QuestionToken),
-        p.schema ? schemaToTs(p.schema) : ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword)
-      )
+        p.required
+          ? undefined
+          : ts.factory.createToken(ts.SyntaxKind.QuestionToken),
+        p.schema
+          ? schemaToTs(p.schema)
+          : ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+      ),
     );
     members.push(
       ts.factory.createPropertySignature(
         undefined,
         'query',
         ts.factory.createToken(ts.SyntaxKind.QuestionToken),
-        ts.factory.createTypeLiteralNode(queryMembers)
-      )
+        ts.factory.createTypeLiteralNode(queryMembers),
+      ),
     );
   }
 
@@ -117,8 +159,8 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
         undefined,
         bodySchema
           ? schemaToTs(bodySchema)
-          : ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword)
-      )
+          : ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword),
+      ),
     );
   }
 
@@ -127,7 +169,7 @@ export function generateParamsType(op: SseOperation): ts.InterfaceDeclaration {
     typeName,
     undefined,
     undefined,
-    members
+    members,
   );
 }
 
@@ -156,8 +198,8 @@ export function generateReferencedSchemaTypes(): ts.TypeAliasDeclaration[] {
           [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
           name,
           undefined,
-          typeNode
-        )
+          typeNode,
+        ),
       );
     }
   }

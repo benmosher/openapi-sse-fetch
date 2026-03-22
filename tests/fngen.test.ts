@@ -31,7 +31,10 @@ describe('generateFunction', () => {
   });
 
   it('uses a camelCase function name from operationId', () => {
-    const code = generateFunction(makeOp({ operationId: 'PostChatCompletions' }), BASE);
+    const code = generateFunction(
+      makeOp({ operationId: 'PostChatCompletions' }),
+      BASE,
+    );
     assert.match(code, /function\* postChatCompletions/);
   });
 
@@ -68,8 +71,18 @@ describe('generateFunction', () => {
     const op = makeOp({
       path: '/users/{userId}/items/{itemId}',
       parameters: [
-        { in: 'path', name: 'userId', required: true, schema: { type: 'string' } },
-        { in: 'path', name: 'itemId', required: true, schema: { type: 'string' } },
+        {
+          in: 'path',
+          name: 'userId',
+          required: true,
+          schema: { type: 'string' },
+        },
+        {
+          in: 'path',
+          name: 'itemId',
+          required: true,
+          schema: { type: 'string' },
+        },
       ],
     });
     const code = generateFunction(op, BASE);
@@ -79,7 +92,14 @@ describe('generateFunction', () => {
 
   it('builds a URLSearchParams-style URL when query params are present', () => {
     const op = makeOp({
-      parameters: [{ in: 'query', name: 'limit', required: false, schema: { type: 'integer' } }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'limit',
+          required: false,
+          schema: { type: 'integer' },
+        },
+      ],
     });
     const code = generateFunction(op, BASE);
     assert.match(code, /new URL/);
@@ -99,7 +119,9 @@ describe('generateFunction', () => {
   it('includes Content-Type and body serialisation for operations with a requestBody', () => {
     const op = makeOp({
       method: 'post',
-      requestBody: { content: { 'application/json': { schema: { type: 'object' } } } },
+      requestBody: {
+        content: { 'application/json': { schema: { type: 'object' } } },
+      },
     });
     const code = generateFunction(op, BASE);
     assert.match(code, /Content-Type.*application\/json/);
@@ -121,8 +143,20 @@ describe('generateFunction', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'start' }, data: { type: 'string' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'end' }, data: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'start' },
+              data: { type: 'string' },
+            },
+          },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'end' },
+              data: { type: 'string' },
+            },
+          },
         ],
       },
     });
@@ -135,8 +169,20 @@ describe('generateFunction', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'start' }, data: { type: 'string' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'end' }, data: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'start' },
+              data: { type: 'string' },
+            },
+          },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'end' },
+              data: { type: 'string' },
+            },
+          },
         ],
         // no discriminator
       },
@@ -151,8 +197,20 @@ describe('generateFunction', () => {
     const op = makeOp({
       itemSchema: {
         oneOf: [
-          { type: 'object', properties: { event: { type: 'string', const: 'start' }, data: { type: 'string' } } },
-          { type: 'object', properties: { event: { type: 'string', const: 'end' }, data: { type: 'string' } } },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'start' },
+              data: { type: 'string' },
+            },
+          },
+          {
+            type: 'object',
+            properties: {
+              event: { type: 'string', const: 'end' },
+              data: { type: 'string' },
+            },
+          },
         ],
         discriminator: { propertyName: 'event' },
       },
@@ -171,7 +229,11 @@ describe('generateFunction', () => {
             type: 'object',
             properties: {
               event: { type: 'string', const: 'chunk' },
-              data: { type: 'string', contentMediaType: 'application/json', contentSchema: { type: 'object' } },
+              data: {
+                type: 'string',
+                contentMediaType: 'application/json',
+                contentSchema: { type: 'object' },
+              },
             },
           },
         ],
@@ -220,13 +282,18 @@ describe('generateFunction', () => {
   });
 
   it('falls back to JSON.parse for flat non-primitive itemSchema', () => {
-    const op = makeOp({ itemSchema: { type: 'object', properties: { x: { type: 'string' } } } });
+    const op = makeOp({
+      itemSchema: { type: 'object', properties: { x: { type: 'string' } } },
+    });
     const code = generateFunction(op, BASE);
     assert.match(code, /JSON\.parse\(msg\.data\)/);
   });
 
   it('uses raw msg.data for flat primitive (string) itemSchema', () => {
-    const code = generateFunction(makeOp({ itemSchema: { type: 'string' } }), BASE);
+    const code = generateFunction(
+      makeOp({ itemSchema: { type: 'string' } }),
+      BASE,
+    );
     assert.match(code, /msg\.data as unknown as/);
     assert.doesNotMatch(code, /JSON\.parse/);
   });
@@ -260,7 +327,11 @@ describe('generateFunction', () => {
         type: 'object',
         properties: {
           event: { type: 'string' },
-          data: { type: 'string', contentMediaType: 'application/json', contentSchema: { type: 'object' } },
+          data: {
+            type: 'string',
+            contentMediaType: 'application/json',
+            contentSchema: { type: 'object' },
+          },
           id: { type: 'string' },
         },
       },
@@ -296,7 +367,11 @@ describe('generateFunction', () => {
         type: 'object',
         properties: {
           event: { type: 'string' },
-          data: { type: 'string', contentMediaType: 'application/json', contentSchema: { type: 'object' } },
+          data: {
+            type: 'string',
+            contentMediaType: 'application/json',
+            contentSchema: { type: 'object' },
+          },
         },
       },
     });
@@ -306,7 +381,9 @@ describe('generateFunction', () => {
   });
 
   it('does not treat flat object without event property as wrapper', () => {
-    const op = makeOp({ itemSchema: { type: 'object', properties: { x: { type: 'string' } } } });
+    const op = makeOp({
+      itemSchema: { type: 'object', properties: { x: { type: 'string' } } },
+    });
     const code = generateFunction(op, BASE);
     // Falls through to bare JSON.parse
     assert.match(code, /ch\.push\(JSON\.parse\(msg\.data\)/);

@@ -8,7 +8,13 @@ import { schemaToTs, schemaRegistry } from '../src/schema-to-ts';
 // ---------------------------------------------------------------------------
 
 function printType(node: ts.TypeNode): string {
-  const sf = ts.createSourceFile('t.ts', '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const sf = ts.createSourceFile(
+    't.ts',
+    '',
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TS,
+  );
   const printer = ts.createPrinter();
   return printer.printNode(ts.EmitHint.Unspecified, node, sf);
 }
@@ -48,7 +54,10 @@ describe('schemaToTs', () => {
   });
 
   it('maps type:array with items', () => {
-    assert.equal(printType(schemaToTs({ type: 'array', items: { type: 'string' } })), 'string[]');
+    assert.equal(
+      printType(schemaToTs({ type: 'array', items: { type: 'string' } })),
+      'string[]',
+    );
   });
 
   it('maps type:array without items to unknown[]', () => {
@@ -56,22 +65,26 @@ describe('schemaToTs', () => {
   });
 
   it('maps type:object with properties', () => {
-    const result = printType(schemaToTs({
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string' },
-        count: { type: 'integer' },
-      },
-    }));
+    const result = printType(
+      schemaToTs({
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' },
+          count: { type: 'integer' },
+        },
+      }),
+    );
     assert.match(result, /id: string/);
     assert.match(result, /count\?: number/);
   });
 
   it('handles schema with only properties (no explicit type)', () => {
-    const result = printType(schemaToTs({
-      properties: { name: { type: 'string' } },
-    }));
+    const result = printType(
+      schemaToTs({
+        properties: { name: { type: 'string' } },
+      }),
+    );
     assert.match(result, /name\?: string/);
   });
 
@@ -92,24 +105,32 @@ describe('schemaToTs', () => {
   });
 
   it('maps oneOf to a union type', () => {
-    const result = printType(schemaToTs({
-      oneOf: [{ type: 'string' }, { type: 'number' }],
-    }));
+    const result = printType(
+      schemaToTs({
+        oneOf: [{ type: 'string' }, { type: 'number' }],
+      }),
+    );
     assert.equal(result, 'string | number');
   });
 
   it('maps allOf to an intersection type', () => {
-    const result = printType(schemaToTs({
-      allOf: [
-        { properties: { a: { type: 'string' } } },
-        { properties: { b: { type: 'number' } } },
-      ],
-    }));
+    const result = printType(
+      schemaToTs({
+        allOf: [
+          { properties: { a: { type: 'string' } } },
+          { properties: { b: { type: 'number' } } },
+        ],
+      }),
+    );
     assert.match(result, /&/);
   });
 
   it('registers a titled object schema in schemaRegistry and returns a reference', () => {
-    const schema = { title: 'MyModel', type: 'object', properties: { x: { type: 'string' } } };
+    const schema = {
+      title: 'MyModel',
+      type: 'object',
+      properties: { x: { type: 'string' } },
+    };
     const result = printType(schemaToTs(schema));
     assert.equal(result, 'MyModel');
     assert.ok(schemaRegistry.has('MyModel'));
@@ -117,11 +138,26 @@ describe('schemaToTs', () => {
   });
 
   it('does not register titled primitive schemas as named types', () => {
-    assert.equal(printType(schemaToTs({ title: 'MyString', type: 'string' })), 'string');
-    assert.equal(printType(schemaToTs({ title: 'MyInt', type: 'integer' })), 'number');
-    assert.equal(printType(schemaToTs({ title: 'MyNum', type: 'number' })), 'number');
-    assert.equal(printType(schemaToTs({ title: 'MyBool', type: 'boolean' })), 'boolean');
-    assert.equal(printType(schemaToTs({ title: 'MyNull', type: 'null' })), 'null');
+    assert.equal(
+      printType(schemaToTs({ title: 'MyString', type: 'string' })),
+      'string',
+    );
+    assert.equal(
+      printType(schemaToTs({ title: 'MyInt', type: 'integer' })),
+      'number',
+    );
+    assert.equal(
+      printType(schemaToTs({ title: 'MyNum', type: 'number' })),
+      'number',
+    );
+    assert.equal(
+      printType(schemaToTs({ title: 'MyBool', type: 'boolean' })),
+      'boolean',
+    );
+    assert.equal(
+      printType(schemaToTs({ title: 'MyNull', type: 'null' })),
+      'null',
+    );
     assert.ok(!schemaRegistry.has('MyString'));
     assert.ok(!schemaRegistry.has('MyInt'));
     assert.ok(!schemaRegistry.has('MyNum'));
@@ -130,17 +166,19 @@ describe('schemaToTs', () => {
   });
 
   it('handles contentMediaType:application/json by unwrapping contentSchema', () => {
-    const result = printType(schemaToTs({
-      contentMediaType: 'application/json',
-      contentSchema: { type: 'boolean' },
-    }));
+    const result = printType(
+      schemaToTs({
+        contentMediaType: 'application/json',
+        contentSchema: { type: 'boolean' },
+      }),
+    );
     assert.equal(result, 'boolean');
   });
 
   it('returns unknown for application/json without contentSchema', () => {
     assert.equal(
       printType(schemaToTs({ contentMediaType: 'application/json' })),
-      'unknown'
+      'unknown',
     );
   });
 
@@ -153,15 +191,24 @@ describe('schemaToTs', () => {
   });
 
   it('maps a string enum to a union of string literals', () => {
-    assert.equal(printType(schemaToTs({ type: 'string', enum: ['ONLINE', 'OFFLINE'] })), '"ONLINE" | "OFFLINE"');
+    assert.equal(
+      printType(schemaToTs({ type: 'string', enum: ['ONLINE', 'OFFLINE'] })),
+      '"ONLINE" | "OFFLINE"',
+    );
   });
 
   it('maps a single-element enum to a single literal (not a union)', () => {
-    assert.equal(printType(schemaToTs({ type: 'string', enum: ['ACTIVE'] })), '"ACTIVE"');
+    assert.equal(
+      printType(schemaToTs({ type: 'string', enum: ['ACTIVE'] })),
+      '"ACTIVE"',
+    );
   });
 
   it('maps a number enum to a union of numeric literals', () => {
-    assert.equal(printType(schemaToTs({ type: 'integer', enum: [1, 2, 3] })), '1 | 2 | 3');
+    assert.equal(
+      printType(schemaToTs({ type: 'integer', enum: [1, 2, 3] })),
+      '1 | 2 | 3',
+    );
   });
 
   it('maps a mixed enum to a union of literals', () => {
@@ -170,13 +217,15 @@ describe('schemaToTs', () => {
   });
 
   it('handles enum inside an object property', () => {
-    const result = printType(schemaToTs({
-      type: 'object',
-      required: ['status'],
-      properties: {
-        status: { type: 'string', enum: ['ONLINE', 'OFFLINE'] },
-      },
-    }));
+    const result = printType(
+      schemaToTs({
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['ONLINE', 'OFFLINE'] },
+        },
+      }),
+    );
     assert.match(result, /status: "ONLINE" \| "OFFLINE"/);
   });
 });

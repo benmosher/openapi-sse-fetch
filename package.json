@@ -12,7 +12,9 @@
     "prepare": "npm run build",
     "start": "node dist/cli.js",
     "test": "tsc -p tsconfig.test.json && node --test dist-test/**/*.test.js",
-    "generate": "npm run build && node dist/cli.js --input openapi.yaml --output generated"
+    "generate": "npm run build && node dist/cli.js --input openapi.yaml --output generated",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@scalar/openapi-parser": "^0.10.4",
@@ -23,6 +25,12 @@
   "devDependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.8.1"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   }
 }
